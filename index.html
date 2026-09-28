@@ -1,0 +1,1789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Time Tracker</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<style>
+  :root{
+    --paper:#EFF7FC;
+    --paper-raised:#FFFFFF;
+    --ink:#4A3040;
+    --ink-soft:#93748A;
+    --rule:#DBEEF8;
+    --rule-dark:#B8DEF0;
+    --brass:#4FADDE;
+    --brass-dark:#2C86B3;
+    --brass-light:#BFE6F7;
+    --forest:#6FCF97;
+    --forest-light:#3FAE82;
+    --rust:#F4645A;
+    --lavender:#C9B6F2;
+    --lavender-dark:#9C7FE0;
+    --sun:#FFD873;
+    --radius:20px;
+    --radius-sm:12px;
+    --shadow-soft:0 2px 4px rgba(44,134,179,0.05), 0 10px 26px -12px rgba(201,182,242,0.35);
+    --shadow-lift:0 4px 10px rgba(44,134,179,0.08), 0 18px 32px -12px rgba(201,182,242,0.4);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(ellipse 800px 460px at 8% -6%, rgba(255,216,115,0.16), transparent 60%),
+      radial-gradient(ellipse 700px 500px at 100% 0%, rgba(201,182,242,0.18), transparent 55%),
+      var(--paper);
+    color:var(--ink);
+    font-family:'Nunito',sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  .wrap{max-width:1100px;margin:0 auto;padding:0 20px 60px;}
+
+  /* ---------- Header ---------- */
+  .masthead{
+    position:relative;
+    display:flex;justify-content:space-between;align-items:center;
+    background:linear-gradient(120deg, #D6EFFB 0%, #EAF6FF 45%, #E6D6FB 100%);
+    color:var(--ink);
+    border-radius:0 0 32px 32px;
+    padding:34px 32px 30px;
+    margin:0 -20px 26px;
+    flex-wrap:wrap;gap:20px;
+    overflow:hidden;
+    box-shadow:var(--shadow-lift);
+    animation:masthead-in .6s cubic-bezier(.2,.7,.2,1) both;
+  }
+  .masthead::before{
+    content:'';
+    position:absolute;right:-30px;top:-50px;width:170px;height:170px;
+    border-radius:50%;background:rgba(255,255,255,0.45);
+    pointer-events:none;
+  }
+  .masthead::after{
+    content:'';
+    position:absolute;right:70px;bottom:-46px;width:100px;height:100px;
+    border-radius:50%;background:rgba(255,216,115,0.4);
+    pointer-events:none;
+  }
+  @keyframes masthead-in{
+    from{opacity:0;transform:translateY(-8px);}
+    to{opacity:1;transform:translateY(0);}
+  }
+  .masthead-text{position:relative;z-index:1;}
+  .masthead h1{
+    font-family:'Baloo 2',sans-serif;
+    font-weight:700;
+    font-size:40px;
+    letter-spacing:-0.01em;
+    margin:0;
+    color:var(--ink);
+  }
+  .masthead .sub{
+    font-size:13px;color:var(--ink-soft);margin-top:6px;max-width:360px;line-height:1.5;
+  }
+  .controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;position:relative;z-index:1;}
+  .controls > div{
+    background:rgba(255,255,255,0.55);
+    border:1px solid rgba(255,255,255,0.7);
+    border-radius:var(--radius-sm);
+    padding:8px 12px 9px;
+    backdrop-filter:blur(2px);
+  }
+  .controls label{color:var(--ink-soft);margin-bottom:3px;}
+  .controls select{
+    background:transparent;border:none;color:var(--ink);padding:0;font-weight:700;font-size:14px;
+  }
+  .controls select:focus{outline:none;}
+  .controls select option{color:var(--ink);}
+  .month-nav{display:flex;align-items:center;gap:4px;}
+  .month-nav input[type="month"]{
+    background:transparent;border:none;color:var(--ink);padding:0;font-weight:700;font-size:14px;
+    font-family:'Nunito',sans-serif;width:120px;
+  }
+  .month-nav input[type="month"]:focus{outline:none;box-shadow:none;}
+  .month-arrow{
+    background:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.8);
+    color:var(--ink);width:24px;height:24px;padding:0;border-radius:50%;
+    display:inline-flex;align-items:center;justify-content:center;
+    font-size:15px;line-height:1;box-shadow:none;
+  }
+  .month-arrow:hover{background:rgba(255,255,255,0.9);transform:none;box-shadow:none;}
+
+  select, input, textarea{
+    font-family:'Nunito',sans-serif;
+    font-size:14px;
+    padding:9px 12px;
+    border:1.5px solid var(--rule-dark);
+    border-radius:var(--radius-sm);
+    background:var(--paper-raised);
+    color:var(--ink);
+    transition:border-color .15s ease, box-shadow .15s ease;
+  }
+  select:focus, input:focus, textarea:focus{
+    outline:none;border-color:var(--brass);
+    box-shadow:0 0 0 3px rgba(79,173,222,0.18);
+  }
+  label{font-size:12px;color:var(--ink-soft);display:block;margin-bottom:4px;font-weight:600;}
+
+  .conn-status{
+    font-size:11.5px;color:var(--ink-soft);margin:-8px 0 22px;
+    display:inline-flex;align-items:flex-start;gap:7px;
+    background:var(--paper-raised);border:1px solid var(--rule);
+    border-radius:14px;padding:6px 14px 6px 10px;
+    max-width:100%;
+  }
+  .conn-dot{width:7px;height:7px;border-radius:50%;background:var(--rule-dark);display:inline-block;transition:background .2s ease;flex-shrink:0;margin-top:3px;}
+  .conn-dot.ok{background:var(--forest-light);box-shadow:0 0 0 3px rgba(63,174,130,0.2);}
+  .conn-dot.err{background:var(--rust);box-shadow:0 0 0 3px rgba(244,100,90,0.2);}
+  #conn-label{word-break:break-word;line-height:1.5;}
+
+  /* ---------- Layout grid ---------- */
+  .grid{display:grid;grid-template-columns:300px 1fr;gap:24px;}
+  @media (max-width:800px){ .grid{grid-template-columns:1fr;} .masthead{margin:0 -20px 20px;border-radius:0 0 24px 24px;padding:26px 22px 22px;} .masthead h1{font-size:32px;} }
+
+  .panel{
+    background:var(--paper-raised);
+    border:1.5px solid var(--rule);
+    border-radius:var(--radius);
+    padding:20px;
+    box-shadow:var(--shadow-soft);
+  }
+  .panel + .panel{margin-top:18px;}
+  .panel h2{
+    font-family:'Baloo 2',sans-serif;
+    font-size:17.5px;font-weight:600;margin:0 0 15px;
+    padding-bottom:10px;border-bottom:1.5px dashed var(--rule);
+    display:flex;align-items:center;gap:8px;
+  }
+  .panel h2 .dot{width:7px;height:7px;border-radius:50%;background:var(--brass);display:inline-block;}
+  .panel-head-row{
+    display:flex;align-items:center;justify-content:space-between;
+    padding-bottom:10px;margin-bottom:15px;border-bottom:1.5px dashed var(--rule);
+  }
+  .panel-head-row h2{margin:0;padding:0;border:none;}
+  .icon-btn{
+    width:30px;height:30px;padding:0;border-radius:50%;
+    display:inline-flex;align-items:center;justify-content:center;
+    background:var(--paper-raised);border:1.5px solid var(--rule-dark);color:var(--ink);
+    box-shadow:none;flex-shrink:0;
+  }
+  .icon-btn:hover{background:var(--brass-light);border-color:var(--brass);color:var(--brass-dark);transform:scale(1.08);box-shadow:none;}
+  .icon-btn[aria-expanded="true"]{background:var(--brass);border-color:var(--brass);color:#fff;}
+  .icon-btn[aria-expanded="true"] svg{transform:rotate(45deg);}
+  .icon-btn svg{transition:transform .15s ease;}
+  .list-toggle[aria-expanded="true"] svg{transform:rotate(180deg);}
+  .icon-btn-dark{
+    background:rgba(255,255,255,0.55);border:1.5px solid rgba(255,255,255,0.8);color:var(--ink);
+  }
+  .icon-btn-dark:hover{background:#fff;border-color:#fff;color:var(--brass-dark);}
+
+  .modal-backdrop{
+    position:fixed;inset:0;background:rgba(74,48,64,0.42);backdrop-filter:blur(2px);
+    display:flex;align-items:center;justify-content:center;padding:20px;z-index:50;
+    animation:backdrop-in .15s ease both;
+  }
+  .modal-backdrop[hidden]{display:none;}
+  @keyframes backdrop-in{ from{opacity:0;} to{opacity:1;} }
+  .modal-card{
+    background:var(--paper-raised);border-radius:26px;border:1.5px solid var(--rule);
+    padding:24px;max-width:420px;width:100%;box-shadow:var(--shadow-lift);
+    animation:modal-in .18s cubic-bezier(.2,.7,.2,1) both;
+  }
+  @keyframes modal-in{
+    from{opacity:0;transform:translateY(10px) scale(.98);}
+    to{opacity:1;transform:translateY(0) scale(1);}
+  }
+  .modal-head{
+    display:flex;align-items:center;justify-content:space-between;
+    margin-bottom:16px;
+  }
+  .modal-head h2{
+    font-family:'Baloo 2',sans-serif;font-size:20px;font-weight:700;margin:0;
+  }
+  .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:6px;}
+  .modal-card-wide{max-width:480px;max-height:88vh;overflow-y:auto;}
+  .settings-note{
+    font-size:11.5px;color:var(--ink-soft);line-height:1.5;
+    background:rgba(79,173,222,0.09);border:1px dashed rgba(79,173,222,0.35);
+    border-radius:14px;padding:10px 14px;margin-bottom:16px;
+  }
+  .settings-section-label{
+    font-family:'Baloo 2',sans-serif;font-weight:600;font-size:13px;color:var(--brass-dark);
+    margin:18px 0 10px;padding-top:12px;border-top:1px dashed var(--rule);
+  }
+  .settings-section-label:first-of-type, .settings-section-label.first{margin-top:0;padding-top:0;border-top:none;}
+  .settings-subsection-label{
+    font-size:11px;font-weight:700;color:var(--ink-soft);
+    text-transform:uppercase;letter-spacing:0.04em;
+    margin:12px 0 8px;
+  }
+  .checkbox-field{
+    display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:500;
+    margin:4px 0 10px;cursor:pointer;
+  }
+  .checkbox-field input[type="checkbox"]{
+    width:17px;height:17px;padding:0;accent-color:var(--brass);flex-shrink:0;cursor:pointer;
+  }
+  @media (max-width:480px){
+    .modal-card{padding:18px 16px;width:100%;}
+    .modal-card .row-2{grid-template-columns:1fr;gap:13px;}
+    .modal-backdrop{padding:14px;}
+  }
+  .field{margin-bottom:13px;}
+  .row-2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+
+  .duration-chips{display:flex;gap:8px;flex-wrap:wrap;}
+  .chip{
+    width:46px;height:46px;padding:0;border-radius:50%;
+    display:inline-flex;align-items:center;justify-content:center;
+    font-family:'Baloo 2',sans-serif;font-weight:700;font-size:12.5px;
+    background:var(--paper-raised);color:var(--brass-dark);
+    border:2px solid var(--rule-dark);box-shadow:none;
+    transition:transform .15s cubic-bezier(.4,1.6,.6,1), background .15s ease, color .15s ease, border-color .15s ease;
+  }
+  .chip:hover{transform:scale(1.08);border-color:var(--brass);background:var(--brass-light);}
+  .chip.active{
+    background:linear-gradient(135deg, var(--brass), var(--brass-dark));
+    color:#fff;border-color:transparent;
+    box-shadow:0 6px 14px -6px rgba(44,134,179,0.5);
+  }
+
+  button{
+    font-family:'Nunito',sans-serif;font-weight:700;font-size:13.5px;
+    padding:10px 18px;border-radius:999px;border:none;
+    background:linear-gradient(135deg, var(--brass), var(--brass-dark));
+    color:#fff;cursor:pointer;
+    transition:transform .15s cubic-bezier(.4,1.6,.6,1), box-shadow .15s ease;
+    box-shadow:0 1px 0 rgba(255,255,255,0.25) inset, 0 8px 16px -8px rgba(44,134,179,0.55);
+  }
+  button:hover{transform:translateY(-1px) scale(1.03);box-shadow:0 1px 0 rgba(255,255,255,0.3) inset, 0 12px 20px -8px rgba(44,134,179,0.6);}
+  button:active{transform:translateY(0) scale(0.98);}
+  button:disabled{opacity:0.45;cursor:not-allowed;transform:none;}
+  button.secondary{
+    background:transparent;color:var(--ink);border:1.5px solid var(--rule-dark);
+    box-shadow:none;
+  }
+  button.secondary:hover{background:var(--paper);border-color:var(--brass);transform:scale(1.02);box-shadow:none;}
+  button.link{
+    background:none;border:none;color:var(--rust);padding:2px 4px;font-size:12px;text-decoration:underline;
+    box-shadow:none;border-radius:4px;
+  }
+  button.link:hover{background:none;color:#c94a41;transform:none;box-shadow:none;}
+  button.wide{width:100%;margin-top:4px;}
+
+  /* ---------- Worker manager ---------- */
+  .worker-row{
+    display:flex;align-items:flex-start;justify-content:space-between;
+    padding:11px 8px;border-bottom:1px dashed var(--rule);font-size:13.5px;gap:10px;
+    border-radius:14px;transition:background .12s ease;
+  }
+  .worker-row:hover{background:rgba(79,173,222,0.07);}
+  .worker-row:last-child{border-bottom:none;}
+  .worker-name{font-weight:700;}
+  .worker-meta{font-size:11.5px;color:var(--ink-soft);margin-top:2px;line-height:1.5;}
+  .worker-meta span{font-family:'IBM Plex Mono',monospace;}
+  .worker-rate{font-family:'IBM Plex Mono',monospace;color:var(--brass-dark);font-size:12.5px;white-space:nowrap;font-weight:700;
+    background:rgba(79,173,222,0.14);padding:2px 9px;border-radius:999px;display:inline-block;}
+  .worker-row-actions{display:flex;align-items:center;gap:8px;justify-content:flex-end;margin-top:6px;}
+  .icon-btn-sm{width:24px;height:24px;}
+  .icon-btn-sm svg{width:12px;height:12px;}
+
+  /* ---------- Table ---------- */
+  .table-scroll{overflow-x:auto;border-radius:var(--radius-sm);}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:560px;}
+  thead th{
+    text-align:left;font-family:'Nunito',sans-serif;font-weight:700;
+    font-size:10.5px;letter-spacing:0.03em;color:var(--ink-soft);
+    border-bottom:2px solid var(--rule-dark);
+    padding:8px 10px;
+  }
+  tbody td{
+    padding:10px 10px;border-bottom:1px dashed var(--rule);
+    font-family:'IBM Plex Mono',monospace;font-size:13px;
+  }
+  tbody td.note-cell{font-family:'Nunito',sans-serif;color:var(--ink-soft);font-size:12.5px;}
+  tbody tr:nth-child(even){background:rgba(79,173,222,0.045);}
+  tbody tr{transition:background .1s ease;}
+  tbody tr:hover{background:rgba(79,173,222,0.11);}
+  td.num, th.num{text-align:right;}
+  .empty-row td{
+    font-family:'Nunito',sans-serif;color:var(--ink-soft);
+    text-align:center;padding:36px 8px;font-size:13.5px;
+    border:1.5px dashed var(--rule-dark);border-radius:16px;
+  }
+
+  .ledger-head{
+    display:flex;justify-content:space-between;align-items:flex-start;
+    flex-wrap:wrap;gap:14px;
+    padding-bottom:14px;margin-bottom:16px;
+    border-bottom:1.5px dashed var(--rule);
+  }
+  .ledger-head h2{margin:0;padding:0;border:none;}
+  .ledger-period{
+    font-size:11.5px;color:var(--brass-dark);margin-top:4px;
+    text-transform:uppercase;letter-spacing:0.06em;font-weight:700;
+  }
+  .ledger-head-meta{
+    text-align:right;font-size:12px;color:var(--ink-soft);line-height:1.6;
+  }
+  .ledger-head-meta .lhm-name{
+    font-family:'Baloo 2',sans-serif;font-weight:600;font-size:15.5px;color:var(--ink);
+  }
+  .ledger-head-meta .lhm-rate{color:var(--brass-dark);font-family:'IBM Plex Mono',monospace;font-weight:700;}
+
+  /* ---------- Stamp / totals ---------- */
+  .stamp-bar{
+    display:flex;align-items:center;justify-content:space-between;
+    margin-top:20px;flex-wrap:wrap;gap:16px;
+  }
+  .stamp{
+    display:inline-flex;align-items:center;gap:24px;
+    border:2px dashed var(--brass);
+    color:var(--brass-dark);
+    padding:14px 26px;border-radius:22px;
+    transform:rotate(-1.5deg);
+    background:linear-gradient(160deg, rgba(191,230,247,0.28), rgba(255,216,115,0.12));
+    box-shadow:0 10px 22px -10px rgba(44,134,179,0.35), inset 0 0 0 1px rgba(255,255,255,0.5);
+    position:relative;
+  }
+  .stamp .figure{text-align:center;}
+  .stamp .figure .n{
+    font-family:'Baloo 2',sans-serif;font-weight:700;font-size:27px;line-height:1;
+    font-variant-numeric:tabular-nums;
+  }
+  .stamp .figure .l{
+    font-size:10px;letter-spacing:0.06em;color:var(--brass-dark);margin-top:3px;font-weight:700;
+  }
+  .stamp .div{width:1px;height:32px;background:var(--brass);opacity:0.35;}
+
+  .export-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+  #pdf-fallback{font-size:12.5px;color:var(--ink-soft);display:none;}
+  #pdf-fallback a{color:var(--brass-dark);font-weight:600;}
+
+  .hint{font-size:12px;color:var(--ink-soft);margin-top:8px;line-height:1.5;}
+  .report-footnote{font-size:11px;color:var(--ink-soft);margin-top:14px;padding-top:10px;border-top:1px dashed var(--rule);}
+  .toast{
+    position:fixed;bottom:26px;left:50%;transform:translate(-50%, 8px);
+    background:linear-gradient(135deg, var(--brass), var(--lavender-dark));color:#fff;
+    padding:11px 22px;border-radius:999px;font-size:13px;font-weight:700;
+    opacity:0;transition:opacity .25s ease, transform .25s ease;pointer-events:none;
+    max-width:80vw;text-align:center;box-shadow:0 10px 26px -10px rgba(44,134,179,0.5);
+  }
+  .toast.show{opacity:1;transform:translate(-50%, 0);}
+  .day-name{color:var(--ink-soft);font-family:'Nunito',sans-serif;font-size:11px;}
+  .empty-state{font-size:13px;color:var(--ink-soft);line-height:1.6;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="masthead">
+    <div class="masthead-text">
+      <h1>Time Tracker</h1>
+      <div class="sub">Time worked, tracked to the minute — and what it's worth.</div>
+    </div>
+    <div class="controls">
+      <div>
+        <label for="worker-select">Worker</label>
+        <select id="worker-select"></select>
+      </div>
+      <div>
+        <label for="month-input">Month</label>
+        <div class="month-nav">
+          <button type="button" class="month-arrow" id="month-prev" aria-label="Previous month">‹</button>
+          <input type="month" id="month-input">
+          <button type="button" class="month-arrow" id="month-next" aria-label="Next month">›</button>
+        </div>
+      </div>
+      <button type="button" class="icon-btn icon-btn-dark" id="open-worker-modal" aria-label="Add worker" title="Add worker">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+          <circle cx="9" cy="7" r="4"></circle>
+          <line x1="19" y1="8" x2="19" y2="14"></line>
+          <line x1="16" y1="11" x2="22" y2="11"></line>
+        </svg>
+      </button>
+    </div>
+  </div>
+  <div class="conn-status"><span class="conn-dot" id="conn-dot"></span><span id="conn-label">Connecting to database…</span></div>
+
+  <div class="grid">
+    <!-- LEFT COLUMN -->
+    <div>
+      <div class="panel">
+        <h2><span class="dot"></span>Log a shift</h2>
+        <form id="entry-form">
+          <div class="field">
+            <label for="entry-date">Date</label>
+            <input type="date" id="entry-date" required>
+          </div>
+          <div class="row-2">
+            <div class="field">
+              <label for="entry-start">Start</label>
+              <input type="time" id="entry-start" required>
+            </div>
+            <div class="field">
+              <label for="entry-end">End</label>
+              <input type="time" id="entry-end" required>
+            </div>
+          </div>
+          <div class="field">
+            <label>Quick duration</label>
+            <div class="duration-chips">
+              <button type="button" class="chip" data-duration="4">4h</button>
+              <button type="button" class="chip" data-duration="6">6h</button>
+              <button type="button" class="chip" data-duration="8">8h</button>
+              <button type="button" class="chip" data-duration="10">10h</button>
+            </div>
+          </div>
+          <div class="field">
+            <label for="entry-break">Break (minutes)</label>
+            <input type="number" id="entry-break" min="0" step="1" value="0">
+          </div>
+          <div class="field">
+            <label for="entry-note">Note (optional)</label>
+            <input type="text" id="entry-note" placeholder="e.g. warehouse shift">
+          </div>
+          <button type="submit" class="wide" id="entry-submit">Add entry</button>
+        </form>
+        <div class="hint">Shifts that cross midnight (end time earlier than start) are counted as overnight automatically.</div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head-row">
+          <h2><span class="dot"></span>Workers &amp; rates</h2>
+          <button type="button" class="icon-btn list-toggle" id="toggle-worker-list" aria-label="Show workers" aria-expanded="false">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </button>
+        </div>
+        <div id="worker-list" hidden></div>
+      </div>
+    </div>
+
+    <!-- RIGHT COLUMN -->
+    <div>
+      <div class="panel">
+        <div class="ledger-head">
+          <div class="ledger-head-main">
+            <h2 id="ledger-title">Ledger</h2>
+            <div class="ledger-period" id="ledger-period"></div>
+          </div>
+          <div class="ledger-head-meta" id="ledger-worker-meta"></div>
+        </div>
+        <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th class="day-name">Day</th>
+              <th class="num">In</th>
+              <th class="num">Out</th>
+              <th class="num">Break</th>
+              <th class="num">Hours</th>
+              <th class="num">Pay (Fl)</th>
+              <th>Note</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="entry-rows">
+          </tbody>
+        </table>
+        </div>
+
+        <div class="stamp-bar">
+          <div class="stamp">
+            <div class="figure">
+              <div class="n" id="total-hours">0.0</div>
+              <div class="l">HOURS</div>
+            </div>
+            <div class="div"></div>
+            <div class="figure">
+              <div class="n" id="total-pay">Fl 0.00</div>
+              <div class="l">EARNED</div>
+            </div>
+          </div>
+          <div class="export-actions">
+            <button type="button" class="secondary" id="export-pdf">Export month as PDF</button>
+            <button type="button" id="export-payslip">Generate payslip PDF</button>
+          </div>
+        </div>
+        <div id="pdf-fallback"></div>
+        <div class="report-footnote" id="report-footnote"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="worker-modal-backdrop" hidden>
+  <div class="modal-card modal-card-wide" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-head">
+      <h2 id="modal-title">Add a worker</h2>
+      <button type="button" class="icon-btn" id="close-worker-modal" aria-label="Close">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+    <form id="worker-form">
+      <div class="settings-section-label first">Basic info</div>
+      <div class="field">
+        <label for="worker-name">Full name</label>
+        <input type="text" id="worker-name" placeholder="Full name" required>
+      </div>
+      <div class="row-2">
+        <div class="field">
+          <label for="worker-idnum">ID number</label>
+          <input type="text" id="worker-idnum" placeholder="e.g. 1234567" required>
+        </div>
+        <div class="field">
+          <label for="worker-rate">Rate (Fl / hr)</label>
+          <input type="number" id="worker-rate" min="0" step="0.01" placeholder="0.00" required>
+        </div>
+      </div>
+      <div class="field">
+        <label for="worker-address">Address</label>
+        <input type="text" id="worker-address" placeholder="Street, city" required>
+      </div>
+
+      <div class="settings-section-label">Company &amp; employment</div>
+      <div class="row-2">
+        <div class="field">
+          <label for="set-company">Company name</label>
+          <input type="text" id="set-company" placeholder="e.g. My Company N.V.">
+        </div>
+        <div class="field">
+          <label for="set-department">Department</label>
+          <input type="text" id="set-department" placeholder="e.g. GENERAL">
+        </div>
+      </div>
+      <div class="row-2">
+        <div class="field">
+          <label for="set-empnum">Employee #</label>
+          <input type="text" id="set-empnum" placeholder="e.g. 480">
+        </div>
+        <div class="field">
+          <label for="set-hrnum">HR Number</label>
+          <input type="text" id="set-hrnum" placeholder="e.g. 10016393">
+        </div>
+      </div>
+      <div class="row-2">
+        <div class="field">
+          <label for="set-fiscalnum">Fiscal nr</label>
+          <input type="text" id="set-fiscalnum" placeholder="e.g. 01102337">
+        </div>
+        <div class="field">
+          <label for="set-function">Function / position</label>
+          <input type="text" id="set-function" placeholder="e.g. Sales">
+        </div>
+      </div>
+      <div class="row-2">
+        <div class="field">
+          <label for="set-startwork">Start work date</label>
+          <input type="date" id="set-startwork">
+        </div>
+        <div class="field">
+          <label for="set-endwork">End work date (optional)</label>
+          <input type="date" id="set-endwork">
+        </div>
+      </div>
+      <div class="row-2">
+        <div class="field">
+          <label for="set-daysweek">Days per week</label>
+          <input type="number" id="set-daysweek" min="0" max="7" step="0.5" placeholder="5">
+        </div>
+        <div class="field">
+          <label for="set-vacdays">Vacation days / year</label>
+          <input type="number" id="set-vacdays" min="0" step="0.5" placeholder="e.g. 16.50">
+        </div>
+      </div>
+      <div class="row-2">
+        <div class="field">
+          <label for="set-vacbalance">Balance vacation days</label>
+          <input type="number" id="set-vacbalance" step="0.01" placeholder="e.g. 1.25">
+        </div>
+        <div class="field">
+          <label for="set-bankname">Bank name</label>
+          <input type="text" id="set-bankname" placeholder="e.g. Aruba Bank N.V.">
+        </div>
+      </div>
+      <div class="field">
+        <label for="set-bankacct">Bank account #</label>
+        <input type="text" id="set-bankacct" placeholder="e.g. #5841880390">
+      </div>
+
+      <div class="settings-section-label">Salary tax &amp; deductions</div>
+      <div class="settings-note">These deduction rates default to the values from your reference payslip. Aruba's social security and pension rates can change — confirm the current figures with SVB / your payroll provider and adjust here if needed.</div>
+
+      <div class="settings-subsection-label">Pension</div>
+      <div class="row-2">
+        <div class="field">
+          <label for="set-pension-er">Employer %</label>
+          <input type="number" id="set-pension-er" min="0" step="0.001" placeholder="3.000">
+        </div>
+        <div class="field">
+          <label for="set-pension-ee">Employee %</label>
+          <input type="number" id="set-pension-ee" min="0" step="0.001" placeholder="3.000">
+        </div>
+      </div>
+
+      <div class="settings-subsection-label">AOV / AWW</div>
+      <div class="row-2">
+        <div class="field">
+          <label for="set-aov-er">Employer %</label>
+          <input type="number" id="set-aov-er" min="0" step="0.001" placeholder="10.500">
+        </div>
+        <div class="field">
+          <label for="set-aov-ee">Employee %</label>
+          <input type="number" id="set-aov-ee" min="0" step="0.001" placeholder="5.000">
+        </div>
+      </div>
+
+      <div class="settings-subsection-label">AZV</div>
+      <div class="row-2">
+        <div class="field">
+          <label for="set-azv-er">Employer %</label>
+          <input type="number" id="set-azv-er" min="0" step="0.001" placeholder="8.900">
+        </div>
+        <div class="field">
+          <label for="set-azv-ee">Employee %</label>
+          <input type="number" id="set-azv-ee" min="0" step="0.001" placeholder="1.600">
+        </div>
+      </div>
+
+      <div class="settings-subsection-label">Reparatietoeslag (DIMP wage top-up)</div>
+      <label class="checkbox-field">
+        <input type="checkbox" id="set-rt-eligible">
+        <span>Eligible for reparatietoeslag</span>
+      </label>
+      <div class="settings-note">
+        Only applies if the worker meets DIMP's conditions: registered with the population registry, gross salary of Afl 2,500/month or less, averages 20+ hours/week, isn't receiving reparatietoeslag from another employer or an SVB old-age/survivor's pension, and has filed the werknemersverklaring with you. Check this box only once you've confirmed that — the app will calculate the monthly amount automatically from DIMP's table (Afl 150–175, phasing out above Afl 2,500 gross) but can't verify eligibility itself.
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="secondary" id="cancel-worker-modal">Cancel</button>
+        <button type="submit" id="worker-form-submit">Add worker</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  const SUPABASE_URL = 'https://vtcdnxtgzcgsrslaraul.supabase.co/rest/v1';
+  const SUPABASE_KEY = 'sb_publishable_5kkMMCljv0BA6O25aHDiuA_tG2Hc4gk';
+
+  const HEADERS = {
+    'apikey': SUPABASE_KEY,
+    'Authorization': 'Bearer ' + SUPABASE_KEY,
+    'Content-Type': 'application/json'
+  };
+
+  const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  const DAY_NAMES = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+
+  let workers = [];
+  let entries = [];
+  let currentWorkerId = null;
+  let currentMonthKey = null; // "YYYY-MM"
+
+  const $ = (id) => document.getElementById(id);
+
+  function toast(msg){
+    const t = $('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => t.classList.remove('show'), 2600);
+  }
+
+  function setConnStatus(state, label){
+    $('conn-dot').className = 'conn-dot' + (state ? ' ' + state : '');
+    $('conn-label').textContent = label;
+  }
+
+  // ---------- Supabase REST helpers ----------
+  async function sb(path, options){
+    const res = await fetch(SUPABASE_URL + path, Object.assign({ headers: HEADERS }, options || {}));
+    if(!res.ok){
+      const text = await res.text().catch(() => '');
+      throw new Error('Supabase error ' + res.status + ': ' + text);
+    }
+    if(res.status === 204) return null;
+    return res.json();
+  }
+
+  async function fetchWorkers(){
+    return sb('/workers?select=*&order=name.asc');
+  }
+  async function fetchEntries(){
+    return sb('/time_entries?select=*&order=entry_date.asc,start_time.asc');
+  }
+  async function insertWorker(worker){
+    const rows = await sb('/workers', {
+      method: 'POST',
+      headers: Object.assign({}, HEADERS, { Prefer: 'return=representation' }),
+      body: JSON.stringify(worker)
+    });
+    return rows[0];
+  }
+  async function deleteWorkerRemote(id){
+    await sb('/workers?id=eq.' + id, { method: 'DELETE' });
+  }
+  async function updateWorker(id, patch){
+    const rows = await sb('/workers?id=eq.' + id, {
+      method: 'PATCH',
+      headers: Object.assign({}, HEADERS, { Prefer: 'return=representation' }),
+      body: JSON.stringify(patch)
+    });
+    return rows[0];
+  }
+  async function insertEntry(entry){
+    const rows = await sb('/time_entries', {
+      method: 'POST',
+      headers: Object.assign({}, HEADERS, { Prefer: 'return=representation' }),
+      body: JSON.stringify(entry)
+    });
+    return rows[0];
+  }
+  async function deleteEntryRemote(id){
+    await sb('/time_entries?id=eq.' + id, { method: 'DELETE' });
+  }
+
+  // ---------- Time math ----------
+  function toMinutes(hhmm){
+    const [h,m] = hhmm.split(':').map(Number);
+    return h*60+m;
+  }
+
+  function hoursForEntry(entry){
+    let start = toMinutes(entry.start_time.slice(0,5));
+    let end = toMinutes(entry.end_time.slice(0,5));
+    if(end <= start) end += 24*60; // overnight shift
+    const brk = Number(entry.break_minutes) || 0;
+    const mins = Math.max(0, end - start - brk);
+    return mins/60;
+  }
+
+  function fmtHours(h){ return h.toFixed(2).replace(/\.00$/,'.0'); }
+  function fmtMoney(n){ return 'Fl ' + n.toFixed(2); }
+
+  function dayName(dateStr){
+    const d = new Date(dateStr + 'T00:00:00');
+    return DAY_NAMES[d.getDay()];
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  // ---------- Dropdowns ----------
+  function populateWorkerSelect(){
+    const sel = $('worker-select');
+    sel.innerHTML = '';
+    if(workers.length === 0){
+      const opt = document.createElement('option');
+      opt.value = '';
+      opt.textContent = 'No workers yet';
+      sel.appendChild(opt);
+      currentWorkerId = null;
+      sel.disabled = true;
+      $('entry-submit').disabled = true;
+      return;
+    }
+    sel.disabled = false;
+    $('entry-submit').disabled = false;
+    workers.forEach(w => {
+      const opt = document.createElement('option');
+      opt.value = w.id;
+      opt.textContent = w.name;
+      sel.appendChild(opt);
+    });
+    if(!currentWorkerId || !workers.some(w => w.id === currentWorkerId)){
+      currentWorkerId = workers[0].id;
+    }
+    sel.value = currentWorkerId;
+  }
+
+  function syncMonthInput(){
+    $('month-input').value = currentMonthKey;
+  }
+
+  function shiftMonth(delta){
+    const [y,m] = currentMonthKey.split('-').map(Number);
+    const d = new Date(y, m-1+delta, 1);
+    currentMonthKey = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+    syncMonthInput();
+    renderTable();
+  }
+
+  // ---------- Rendering ----------
+  function currentWorker(){
+    return workers.find(w => w.id === currentWorkerId) || null;
+  }
+
+  function entriesForCurrentView(){
+    if(!currentWorkerId || !currentMonthKey) return [];
+    return entries
+      .filter(e => e.worker_id === currentWorkerId && e.entry_date.slice(0,7) === currentMonthKey)
+      .sort((a,b) => a.entry_date.localeCompare(b.entry_date) || a.start_time.localeCompare(b.start_time));
+  }
+
+  function renderWorkerList(){
+    const box = $('worker-list');
+    box.innerHTML = '';
+    if(workers.length === 0){
+      box.innerHTML = '<div class="empty-state">No workers yet. Add the first one below to start logging hours.</div>';
+      return;
+    }
+    workers.forEach(w => {
+      const row = document.createElement('div');
+      row.className = 'worker-row';
+      row.innerHTML =
+        '<div>' +
+          '<div class="worker-name">' + escapeHtml(w.name) + '</div>' +
+          '<div class="worker-meta">ID <span>' + escapeHtml(w.id_number || '—') + '</span></div>' +
+          '<div class="worker-meta">' + escapeHtml(w.address || '—') + '</div>' +
+        '</div>' +
+        '<div style="text-align:right;">' +
+          '<div class="worker-rate">Fl ' + Number(w.rate).toFixed(2) + '/hr</div>' +
+          '<div class="worker-row-actions">' +
+            '<button class="icon-btn icon-btn-sm" data-payroll-settings="' + w.id + '" aria-label="Edit worker" title="Edit worker">' +
+              '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>' +
+            '</button>' +
+            '<button class="link" data-remove-worker="' + w.id + '">remove</button>' +
+          '</div>' +
+        '</div>';
+      box.appendChild(row);
+    });
+  }
+
+  function renderTable(){
+    const worker = currentWorker();
+    const rows = entriesForCurrentView();
+    const tbody = $('entry-rows');
+    tbody.innerHTML = '';
+
+    const [y,m] = (currentMonthKey||'').split('-');
+    $('ledger-title').textContent = 'Ledger';
+    $('ledger-period').textContent = m ? MONTH_NAMES[Number(m)-1] + ' ' + y : '';
+    if(worker){
+      $('ledger-worker-meta').innerHTML =
+        '<div class="lhm-name">' + escapeHtml(worker.name) + '</div>' +
+        '<div>ID ' + escapeHtml(worker.id_number || '—') + '</div>' +
+        '<div>' + escapeHtml(worker.address || '—') + '</div>' +
+        '<div class="lhm-rate">Fl ' + Number(worker.rate).toFixed(2) + ' / hr</div>';
+    }else{
+      $('ledger-worker-meta').innerHTML = '';
+    }
+
+    if(!worker){
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="9">Add a worker to start logging shifts.</td></tr>';
+    }else if(rows.length === 0){
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="9">No shifts logged for this month yet.</td></tr>';
+    }else{
+      const rate = Number(worker.rate);
+      rows.forEach(e => {
+        const hrs = hoursForEntry(e);
+        const pay = hrs * rate;
+        const tr = document.createElement('tr');
+        tr.innerHTML =
+          '<td>' + e.entry_date + '</td>' +
+          '<td class="day-name">' + dayName(e.entry_date) + '</td>' +
+          '<td class="num">' + e.start_time.slice(0,5) + '</td>' +
+          '<td class="num">' + e.end_time.slice(0,5) + '</td>' +
+          '<td class="num">' + (Number(e.break_minutes)||0) + 'm</td>' +
+          '<td class="num">' + fmtHours(hrs) + '</td>' +
+          '<td class="num">' + pay.toFixed(2) + '</td>' +
+          '<td class="note-cell">' + escapeHtml(e.note || '') + '</td>' +
+          '<td><button class="link" data-remove-entry="' + e.id + '">remove</button></td>';
+        tbody.appendChild(tr);
+      });
+    }
+
+    const totalHours = rows.reduce((sum,e) => sum + hoursForEntry(e), 0);
+    const rate = worker ? Number(worker.rate) : 0;
+    $('total-hours').textContent = fmtHours(totalHours);
+    $('total-pay').textContent = fmtMoney(totalHours * rate);
+
+    const now = new Date();
+    $('report-footnote').textContent = rows.length
+      ? 'Overview generated ' + now.toLocaleDateString() + ' · ' + rows.length + ' shift' + (rows.length === 1 ? '' : 's') + ' recorded this period.'
+      : '';
+  }
+
+  function renderAll(){
+    populateWorkerSelect();
+    syncMonthInput();
+    renderWorkerList();
+    renderTable();
+  }
+
+  // ---------- Event handlers ----------
+  $('worker-select').addEventListener('change', e => {
+    currentWorkerId = e.target.value;
+    renderTable();
+  });
+
+  $('month-input').addEventListener('change', e => {
+    if(!e.target.value) return;
+    currentMonthKey = e.target.value;
+    renderTable();
+  });
+  $('month-prev').addEventListener('click', () => shiftMonth(-1));
+  $('month-next').addEventListener('click', () => shiftMonth(1));
+
+  function addHoursToTime(hhmm, hours){
+    const [h, m] = hhmm.split(':').map(Number);
+    let total = (h * 60 + m + hours * 60) % 1440;
+    if(total < 0) total += 1440;
+    const nh = Math.floor(total / 60);
+    const nm = total % 60;
+    return String(nh).padStart(2,'0') + ':' + String(nm).padStart(2,'0');
+  }
+
+  document.querySelectorAll('.chip[data-duration]').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const duration = Number(chip.getAttribute('data-duration'));
+      const start = $('entry-start').value || '08:00';
+      $('entry-start').value = start;
+      $('entry-end').value = addHoursToTime(start, duration);
+      document.querySelectorAll('.chip.active').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+    });
+  });
+  $('entry-start').addEventListener('input', () => {
+    document.querySelectorAll('.chip.active').forEach(c => c.classList.remove('active'));
+  });
+  $('entry-end').addEventListener('input', () => {
+    document.querySelectorAll('.chip.active').forEach(c => c.classList.remove('active'));
+  });
+
+  $('entry-form').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    if(!currentWorkerId){ toast('Add a worker first.'); return; }
+    const date = $('entry-date').value;
+    const start = $('entry-start').value;
+    const end = $('entry-end').value;
+    const breakMinutes = Number($('entry-break').value) || 0;
+    const note = $('entry-note').value.trim();
+    if(!date || !start || !end){ toast('Fill in date, start and end.'); return; }
+
+    const submitBtn = $('entry-submit');
+    submitBtn.disabled = true;
+    try{
+      const saved = await insertEntry({
+        worker_id: currentWorkerId,
+        entry_date: date,
+        start_time: start,
+        end_time: end,
+        break_minutes: breakMinutes,
+        note: note || null
+      });
+      entries.push(saved);
+      currentMonthKey = date.slice(0,7);
+      ev.target.reset();
+      $('entry-break').value = 0;
+      $('entry-start').value = '08:00';
+      document.querySelectorAll('.chip.active').forEach(c => c.classList.remove('active'));
+      renderAll();
+      toast('Shift saved.');
+    }catch(err){
+      console.error(err);
+      toast('Could not save shift — check the connection.');
+    }finally{
+      submitBtn.disabled = false;
+    }
+  });
+
+  const DEFAULT_RATES = {
+    pension_employer_pct: 3.000,
+    pension_employee_pct: 3.000,
+    aov_employer_pct: 10.500,
+    aov_employee_pct: 5.000,
+    azv_employer_pct: 8.900,
+    azv_employee_pct: 1.600
+  };
+
+  let editingWorkerId = null; // null = add mode, otherwise edit mode
+
+  function fillWorkerForm(w){
+    $('worker-name').value = w ? w.name : '';
+    $('worker-idnum').value = w ? (w.id_number || '') : '';
+    $('worker-rate').value = w ? w.rate : '';
+    $('worker-address').value = w ? (w.address || '') : '';
+    $('set-company').value = w ? (w.company_name || '') : '';
+    $('set-department').value = w ? (w.department || '') : '';
+    $('set-empnum').value = w ? (w.employee_number || '') : '';
+    $('set-hrnum').value = w ? (w.hr_number || '') : '';
+    $('set-fiscalnum').value = w ? (w.fiscal_number || '') : '';
+    $('set-function').value = w ? (w.function_title || '') : '';
+    $('set-startwork').value = w ? (w.start_work || '') : '';
+    $('set-endwork').value = w ? (w.end_work || '') : '';
+    $('set-daysweek').value = w && w.days_per_week != null ? w.days_per_week : 5;
+    $('set-vacdays').value = w && w.vacation_days_per_year != null ? w.vacation_days_per_year : '';
+    $('set-vacbalance').value = w && w.balance_vacation_days != null ? w.balance_vacation_days : '';
+    $('set-bankname').value = w ? (w.bank_name || '') : '';
+    $('set-bankacct').value = w ? (w.bank_account || '') : '';
+    $('set-pension-er').value = w && w.pension_employer_pct != null ? w.pension_employer_pct : DEFAULT_RATES.pension_employer_pct;
+    $('set-pension-ee').value = w && w.pension_employee_pct != null ? w.pension_employee_pct : DEFAULT_RATES.pension_employee_pct;
+    $('set-aov-er').value = w && w.aov_employer_pct != null ? w.aov_employer_pct : DEFAULT_RATES.aov_employer_pct;
+    $('set-aov-ee').value = w && w.aov_employee_pct != null ? w.aov_employee_pct : DEFAULT_RATES.aov_employee_pct;
+    $('set-azv-er').value = w && w.azv_employer_pct != null ? w.azv_employer_pct : DEFAULT_RATES.azv_employer_pct;
+    $('set-azv-ee').value = w && w.azv_employee_pct != null ? w.azv_employee_pct : DEFAULT_RATES.azv_employee_pct;
+    $('set-rt-eligible').checked = w ? !!w.reparatietoeslag_eligible : false;
+  }
+
+  function openWorkerModal(workerId){
+    if(workerId){
+      const w = workers.find(x => x.id === workerId);
+      if(!w) return;
+      editingWorkerId = workerId;
+      $('modal-title').textContent = 'Edit worker';
+      $('worker-form-submit').textContent = 'Save changes';
+      fillWorkerForm(w);
+    }else{
+      editingWorkerId = null;
+      $('modal-title').textContent = 'Add a worker';
+      $('worker-form-submit').textContent = 'Add worker';
+      fillWorkerForm(null);
+    }
+    $('worker-modal-backdrop').removeAttribute('hidden');
+    $('worker-name').focus();
+  }
+  function closeWorkerModal(){
+    $('worker-modal-backdrop').setAttribute('hidden', '');
+    $('worker-form').reset();
+    editingWorkerId = null;
+  }
+
+  $('open-worker-modal').addEventListener('click', () => openWorkerModal(null));
+
+  $('toggle-worker-list').addEventListener('click', () => {
+    const list = $('worker-list');
+    const btn = $('toggle-worker-list');
+    const isHidden = list.hasAttribute('hidden');
+    if(isHidden){
+      list.removeAttribute('hidden');
+      btn.setAttribute('aria-expanded', 'true');
+      btn.setAttribute('aria-label', 'Hide workers');
+    }else{
+      list.setAttribute('hidden', '');
+      btn.setAttribute('aria-expanded', 'false');
+      btn.setAttribute('aria-label', 'Show workers');
+    }
+  });
+  $('close-worker-modal').addEventListener('click', closeWorkerModal);
+  $('cancel-worker-modal').addEventListener('click', closeWorkerModal);
+  $('worker-modal-backdrop').addEventListener('click', (ev) => {
+    if(ev.target.id === 'worker-modal-backdrop') closeWorkerModal();
+  });
+  document.addEventListener('keydown', (ev) => {
+    if(ev.key === 'Escape' && !$('worker-modal-backdrop').hasAttribute('hidden')) closeWorkerModal();
+  });
+
+  $('worker-form').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const name = $('worker-name').value.trim();
+    const idNumber = $('worker-idnum').value.trim();
+    const address = $('worker-address').value.trim();
+    const rate = Number($('worker-rate').value);
+    if(!name || !idNumber || !address || isNaN(rate)){ toast('Fill in name, ID, address and rate.'); return; }
+
+    const payload = {
+      name, id_number: idNumber, address, rate,
+      company_name: $('set-company').value.trim() || null,
+      department: $('set-department').value.trim() || null,
+      employee_number: $('set-empnum').value.trim() || null,
+      hr_number: $('set-hrnum').value.trim() || null,
+      fiscal_number: $('set-fiscalnum').value.trim() || null,
+      function_title: $('set-function').value.trim() || null,
+      start_work: $('set-startwork').value || null,
+      end_work: $('set-endwork').value || null,
+      days_per_week: $('set-daysweek').value ? Number($('set-daysweek').value) : null,
+      vacation_days_per_year: $('set-vacdays').value ? Number($('set-vacdays').value) : null,
+      balance_vacation_days: $('set-vacbalance').value ? Number($('set-vacbalance').value) : null,
+      bank_name: $('set-bankname').value.trim() || null,
+      bank_account: $('set-bankacct').value.trim() || null,
+      pension_employer_pct: Number($('set-pension-er').value) || 0,
+      pension_employee_pct: Number($('set-pension-ee').value) || 0,
+      aov_employer_pct: Number($('set-aov-er').value) || 0,
+      aov_employee_pct: Number($('set-aov-ee').value) || 0,
+      azv_employer_pct: Number($('set-azv-er').value) || 0,
+      azv_employee_pct: Number($('set-azv-ee').value) || 0,
+      reparatietoeslag_eligible: $('set-rt-eligible').checked
+    };
+
+    try{
+      if(editingWorkerId){
+        const saved = await updateWorker(editingWorkerId, payload);
+        const idx = workers.findIndex(w => w.id === editingWorkerId);
+        if(idx > -1) workers[idx] = saved;
+        closeWorkerModal();
+        renderAll();
+        toast(name + ' updated.');
+      }else{
+        const saved = await insertWorker(payload);
+        workers.push(saved);
+        currentWorkerId = saved.id;
+        closeWorkerModal();
+        renderAll();
+        toast(name + ' added.');
+      }
+    }catch(err){
+      console.error(err);
+      toast('Could not save worker — check the connection.');
+    }
+  });
+
+  document.addEventListener('click', async (ev) => {
+    const rmEntry = ev.target.getAttribute('data-remove-entry');
+    if(rmEntry){
+      try{
+        await deleteEntryRemote(rmEntry);
+        entries = entries.filter(e => e.id !== rmEntry);
+        renderAll();
+        toast('Entry removed.');
+      }catch(err){
+        console.error(err);
+        toast('Could not remove entry.');
+      }
+      return;
+    }
+    const rmWorker = ev.target.getAttribute('data-remove-worker');
+    if(rmWorker){
+      try{
+        await deleteWorkerRemote(rmWorker);
+        workers = workers.filter(w => w.id !== rmWorker);
+        entries = entries.filter(e => e.worker_id !== rmWorker);
+        if(currentWorkerId === rmWorker) currentWorkerId = workers[0] ? workers[0].id : null;
+        renderAll();
+        toast('Worker removed.');
+      }catch(err){
+        console.error(err);
+        toast('Could not remove worker.');
+      }
+      return;
+    }
+    const settingsBtn = ev.target.closest('[data-payroll-settings]');
+    if(settingsBtn){
+      openWorkerModal(settingsBtn.getAttribute('data-payroll-settings'));
+      return;
+    }
+  });
+
+  // ---------- PDF export (timesheet, hours only) ----------
+  $('export-pdf').addEventListener('click', () => {
+    const worker = currentWorker();
+    if(!worker){ toast('Select a worker first.'); return; }
+    const rows = entriesForCurrentView();
+    if(rows.length === 0){ toast('Nothing to export for this month.'); return; }
+
+    const [y,m] = currentMonthKey.split('-');
+    const monthLabel = MONTH_NAMES[Number(m)-1] + ' ' + y;
+    const lastDay = new Date(Number(y), Number(m), 0).getDate();
+    const shortMonth = MONTH_NAMES[Number(m)-1].slice(0,3);
+    const periodLabel = '1 ' + shortMonth + ' - ' + lastDay + ' ' + shortMonth + ' ' + y;
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+    const L = 40, R = 555, W = R - L, PAGE_H = 842;
+
+    const INK = [74,48,64];
+    const SOFT = [140,120,134];
+    const ACCENT = [44,134,179];
+    const TINT = [234,245,252];
+    const ZEBRA = [247,251,254];
+    const RULE = [214,226,234];
+
+    const pad2 = n => String(n).padStart(2,'0');
+    const fmtDate = s => { const [yy,mm,dd] = s.split('-'); return dd + '-' + mm + '-' + yy; };
+    const today = new Date();
+    const todayStr = pad2(today.getDate()) + '-' + pad2(today.getMonth()+1) + '-' + today.getFullYear();
+    function isoWeek(dateStr){
+      const d = new Date(dateStr + 'T00:00:00');
+      const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+      const day = t.getUTCDay() || 7;
+      t.setUTCDate(t.getUTCDate() + 4 - day);
+      const yearStart = new Date(Date.UTC(t.getUTCFullYear(),0,1));
+      return Math.ceil((((t - yearStart) / 86400000) + 1) / 7);
+    }
+
+    // ---- Header ----
+    doc.setFillColor(...ACCENT);
+    doc.rect(0, 0, 595, 6, 'F');
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(22);
+    doc.setTextColor(...INK);
+    doc.text('Timesheet', L, 50);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(...SOFT);
+    doc.text(worker.company_name || 'Monthly hours overview', L, 66);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(13);
+    doc.setTextColor(...INK);
+    doc.text(monthLabel, R, 50, { align: 'right' });
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(...SOFT);
+    doc.text('Generated ' + todayStr, R, 66, { align: 'right' });
+
+    doc.setDrawColor(...RULE);
+    doc.setLineWidth(0.75);
+    doc.line(L, 82, R, 82);
+
+    // ---- Employee details (no pay information) ----
+    const leftFields = [
+      ['Employee', worker.name],
+      ['ID number', worker.id_number],
+      ['Employee no.', worker.employee_number]
+    ].filter(f => f[1]);
+    const rightFields = [
+      ['Period', periodLabel],
+      ['Function', worker.function_title],
+      ['Department', worker.department]
+    ].filter(f => f[1]);
+
+    function fieldColumn(fields, x, labelW){
+      let yy = 102;
+      fields.forEach(([label, value]) => {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.setTextColor(...SOFT);
+        doc.text(label, x, yy);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.setTextColor(...INK);
+        doc.text(String(value), x + labelW, yy);
+        yy += 16;
+      });
+      return yy;
+    }
+    const yA = fieldColumn(leftFields, L, 78);
+    const yB = fieldColumn(rightFields, 320, 70);
+    let cursorY = Math.max(yA, yB) + 6;
+
+    // ---- Summary tiles ----
+    const totalHours = rows.reduce((s,e) => s + hoursForEntry(e), 0);
+    const daysWorked = new Set(rows.map(e => e.entry_date)).size;
+    const totalBreak = rows.reduce((s,e) => s + (Number(e.break_minutes) || 0), 0);
+    const avgPerDay = daysWorked ? totalHours / daysWorked : 0;
+
+    const tiles = [
+      ['Total hours', fmtHours(totalHours)],
+      ['Days worked', String(daysWorked)],
+      ['Average per day', fmtHours(avgPerDay) + ' h'],
+      ['Total breaks', fmtHours(totalBreak/60) + ' h']
+    ];
+    const gap = 10, tileW = (W - gap*3) / 4, tileH = 46;
+    tiles.forEach(([label, value], i) => {
+      const x = L + i*(tileW + gap);
+      doc.setFillColor(...TINT);
+      doc.roundedRect(x, cursorY, tileW, tileH, 4, 4, 'F');
+      if(i === 0){
+        doc.setFillColor(...ACCENT);
+        doc.rect(x, cursorY, 3, tileH, 'F');
+      }
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8.5);
+      doc.setTextColor(...SOFT);
+      doc.text(label, x + 12, cursorY + 18);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(15);
+      doc.setTextColor(...(i === 0 ? ACCENT : INK));
+      doc.text(value, x + 12, cursorY + 35);
+    });
+    cursorY += tileH + 14;
+
+    // ---- Table grouped by week, with weekly subtotals ----
+    const body = [];
+    let currentWeek = null, weekHours = 0;
+    const pushWeekTotal = () => {
+      body.push([
+        { content: 'Week ' + currentWeek + ' total', colSpan: 5,
+          styles: { fontStyle: 'bold', textColor: ACCENT, fillColor: TINT, halign: 'right' } },
+        { content: fmtHours(weekHours),
+          styles: { fontStyle: 'bold', textColor: ACCENT, fillColor: TINT, halign: 'right' } },
+        { content: '', styles: { fillColor: TINT } }
+      ]);
+    };
+    rows.forEach(e => {
+      const wk = isoWeek(e.entry_date);
+      if(currentWeek !== null && wk !== currentWeek){ pushWeekTotal(); weekHours = 0; }
+      currentWeek = wk;
+      const hrs = hoursForEntry(e);
+      weekHours += hrs;
+      const brk = Number(e.break_minutes) || 0;
+      body.push([
+        fmtDate(e.entry_date),
+        dayName(e.entry_date),
+        e.start_time.slice(0,5),
+        e.end_time.slice(0,5),
+        brk ? brk + ' min' : '-',
+        fmtHours(hrs),
+        e.note || ''
+      ]);
+    });
+    pushWeekTotal();
+
+    doc.autoTable({
+      startY: cursorY,
+      margin: { left: L, right: 595 - R, bottom: 60 },
+      head: [['Date', 'Day', 'Start', 'End', 'Break', 'Hours', 'Note']],
+      body: body,
+      foot: [[
+        { content: 'Total for ' + monthLabel, colSpan: 5, styles: { halign: 'right' } },
+        { content: fmtHours(totalHours), styles: { halign: 'right' } },
+        ''
+      ]],
+      showFoot: 'lastPage',
+      theme: 'plain',
+      styles: { font: 'helvetica', fontSize: 9, textColor: INK, cellPadding: { top: 3.2, bottom: 3.2, left: 6, right: 6 }, lineColor: RULE },
+      headStyles: { fillColor: ACCENT, textColor: 255, fontStyle: 'bold', fontSize: 8.5 },
+      footStyles: { fillColor: INK, textColor: 255, fontStyle: 'bold', fontSize: 10 },
+      alternateRowStyles: { fillColor: ZEBRA },
+      columnStyles: {
+        0: { cellWidth: 70 },
+        1: { cellWidth: 38, textColor: SOFT },
+        2: { cellWidth: 46, halign: 'center' },
+        3: { cellWidth: 46, halign: 'center' },
+        4: { cellWidth: 50, halign: 'center', textColor: SOFT },
+        5: { cellWidth: 50, halign: 'right', fontStyle: 'bold' },
+        6: { cellWidth: 'auto', textColor: SOFT }
+      },
+      didParseCell: (data) => {
+        if(data.section === 'head' && [2,3,4].includes(data.column.index)) data.cell.styles.halign = 'center';
+        if(data.section === 'head' && data.column.index === 5) data.cell.styles.halign = 'right';
+      },
+      didDrawCell: (data) => {
+        if(data.section === 'body'){
+          doc.setDrawColor(...RULE);
+          doc.setLineWidth(0.5);
+          doc.line(data.cell.x, data.cell.y + data.cell.height, data.cell.x + data.cell.width, data.cell.y + data.cell.height);
+        }
+      }
+    });
+
+    // ---- Sign-off ----
+    let sy = doc.lastAutoTable.finalY + 22;
+    if(sy + 58 > PAGE_H - 46){ doc.addPage(); sy = 70; }
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(...SOFT);
+    doc.text('I confirm that the hours listed above are correct.', L, sy);
+
+    const sigW = 220, sigY = sy + 30;
+    [['Employee', worker.name, L], ['Approved by', '', R - sigW]].forEach(([role, name, x]) => {
+      doc.setDrawColor(...INK);
+      doc.setLineWidth(0.75);
+      doc.line(x, sigY, x + sigW, sigY);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(...INK);
+      doc.text(role, x, sigY + 14);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(...SOFT);
+      doc.text((name ? name + '   ' : '') + 'Date: ____________', x, sigY + 27);
+    });
+
+    // ---- Footer on every page ----
+    const pages = doc.getNumberOfPages();
+    for(let p = 1; p <= pages; p++){
+      doc.setPage(p);
+      doc.setDrawColor(...RULE);
+      doc.setLineWidth(0.5);
+      doc.line(L, PAGE_H - 40, R, PAGE_H - 40);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(...SOFT);
+      doc.text(worker.name + '  |  Timesheet ' + monthLabel, L, PAGE_H - 26);
+      doc.text('Page ' + p + ' of ' + pages, R, PAGE_H - 26, { align: 'right' });
+    }
+
+    const filename = worker.name + ' - Timesheet ' + monthLabel + '.pdf';
+
+    let downloaded = false;
+    try{
+      doc.save(filename);
+      downloaded = true;
+    }catch(e){ downloaded = false; }
+
+    try{
+      const blobUrl = doc.output('bloburl');
+      const fb = $('pdf-fallback');
+      fb.style.display = 'block';
+      fb.innerHTML = 'If the download didn\'t start: <a href="' + blobUrl + '" target="_blank" rel="noopener">open ' + filename + '</a>';
+    }catch(e){ /* ignore */ }
+
+    toast(downloaded ? 'PDF report generated.' : 'PDF ready — use the link below.');
+  });
+
+  // ---------- Payslip PDF ----------
+  function grossForMonth(workerId, monthKey){
+    return entries
+      .filter(e => e.worker_id === workerId && e.entry_date.slice(0,7) === monthKey)
+      .reduce((sum,e) => sum + hoursForEntry(e), 0);
+  }
+
+  function ytdHours(workerId, monthKey){
+    const [y,m] = monthKey.split('-').map(Number);
+    let total = 0;
+    for(let mm = 1; mm <= m; mm++){
+      const key = y + '-' + String(mm).padStart(2,'0');
+      total += grossForMonth(workerId, key);
+    }
+    return total;
+  }
+
+  // DIMP reparatietoeslag table, effective 1 Jan 2026 (Afl, per calendar month gross salary)
+  const REPARATIETOESLAG_BRACKETS = [
+    { min: 0,       max: 2258.00,  amount: 175.00 }, // covers minimum-wage earners and below the table's stated floor
+    { min: 2258.00, max: 2300.00,  amount: 170.00 },
+    { min: 2300.00, max: 2350.00,  amount: 165.00 },
+    { min: 2350.00, max: 2400.00,  amount: 160.00 },
+    { min: 2400.00, max: 2450.00,  amount: 155.00 },
+    { min: 2450.00, max: 2500.01,  amount: 150.00 }
+  ];
+
+  function reparatietoeslagForGross(gross){
+    if(gross >= 2500.01) return 0;
+    for(const b of REPARATIETOESLAG_BRACKETS){
+      if(gross >= b.min && gross < b.max) return b.amount;
+    }
+    return 0;
+  }
+
+  function ytdReparatietoeslag(workerId, monthKey, rate, eligible){
+    if(!eligible) return 0;
+    const [y,m] = monthKey.split('-').map(Number);
+    let total = 0;
+    for(let mm = 1; mm <= m; mm++){
+      const key = y + '-' + String(mm).padStart(2,'0');
+      const monthHours = grossForMonth(workerId, key);
+      if(monthHours <= 0) continue;
+      total += reparatietoeslagForGross(monthHours * rate);
+    }
+    return total;
+  }
+
+  $('export-payslip').addEventListener('click', () => {
+    const worker = currentWorker();
+    if(!worker){ toast('Select a worker first.'); return; }
+    const hours = grossForMonth(worker.id, currentMonthKey);
+    if(hours <= 0){ toast('No hours logged for this month yet.'); return; }
+
+    const rate = Number(worker.rate);
+    const gross = hours * rate;
+    const [y,m] = currentMonthKey.split('-').map(Number);
+    const monthLabel = MONTH_NAMES[m-1] + ' ' + y;
+    const daysInMonth = new Date(y, m, 0).getDate();
+    const periodFrom = currentMonthKey + '-01';
+    const periodTo = currentMonthKey + '-' + String(daysInMonth).padStart(2,'0');
+
+    const pensionErPct = worker.pension_employer_pct != null ? Number(worker.pension_employer_pct) : DEFAULT_RATES.pension_employer_pct;
+    const pensionEePct = worker.pension_employee_pct != null ? Number(worker.pension_employee_pct) : DEFAULT_RATES.pension_employee_pct;
+    const aovErPct = worker.aov_employer_pct != null ? Number(worker.aov_employer_pct) : DEFAULT_RATES.aov_employer_pct;
+    const aovEePct = worker.aov_employee_pct != null ? Number(worker.aov_employee_pct) : DEFAULT_RATES.aov_employee_pct;
+    const azvErPct = worker.azv_employer_pct != null ? Number(worker.azv_employer_pct) : DEFAULT_RATES.azv_employer_pct;
+    const azvEePct = worker.azv_employee_pct != null ? Number(worker.azv_employee_pct) : DEFAULT_RATES.azv_employee_pct;
+
+    const pensionEr = gross * pensionErPct / 100;
+    const pensionEe = gross * pensionEePct / 100;
+    const pensionTotal = pensionEr + pensionEe;
+    const aovEr = gross * aovErPct / 100;
+    const aovEe = gross * aovEePct / 100;
+    const aovTotal = aovEr + aovEe;
+    const azvEr = gross * azvErPct / 100;
+    const azvEe = gross * azvEePct / 100;
+    const azvTotal = azvEr + azvEe;
+    const netDeductions = pensionEe + aovEe + azvEe;
+
+    const rtEligible = !!worker.reparatietoeslag_eligible;
+    const rtAmount = rtEligible ? reparatietoeslagForGross(gross) : 0;
+    const netPay = gross - netDeductions + rtAmount;
+
+    const ytdH = ytdHours(worker.id, currentMonthKey);
+    const ytdGross = ytdH * rate;
+    const ytdPensionEr = ytdGross * pensionErPct / 100;
+    const ytdPensionEe = ytdGross * pensionEePct / 100;
+    const ytdAovEr = ytdGross * aovErPct / 100;
+    const ytdAovEe = ytdGross * aovEePct / 100;
+    const ytdAzvEr = ytdGross * azvErPct / 100;
+    const ytdAzvEe = ytdGross * azvEePct / 100;
+    const ytdRt = ytdReparatietoeslag(worker.id, currentMonthKey, rate, rtEligible);
+
+    const fmt = (n) => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+    const left = 40, pageRight = 555, totalW = pageRight - left;
+    const INK = [21,42,31];
+    const TINT = [227,238,229];
+    const GREY = [110,115,100];
+    const RULE = [190,192,178];
+    const DUCK_BG = [214,239,251];
+
+    // ---- Bordered grid helper: x0,y,w,height,cells[{w(fraction),label,value}] ----
+    function gridRow(x0, y, w, height, cells){
+      doc.setDrawColor(...RULE);
+      doc.setLineWidth(0.75);
+      doc.rect(x0, y, w, height);
+      let x = x0;
+      cells.forEach((c, i) => {
+        if(i > 0){ doc.line(x, y, x, y + height); }
+        const cw = c.w * w;
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(6.8);
+        doc.setTextColor(...GREY);
+        doc.text(c.label.toUpperCase(), x + 6, y + 11);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9.2);
+        doc.setTextColor(...INK);
+        const valueText = String(c.value == null || c.value === '' ? '—' : c.value);
+        const wrapped = doc.splitTextToSize(valueText, cw - 10);
+        doc.text(wrapped.slice(0,2), x + 6, y + height - 8);
+        x += cw;
+      });
+    }
+
+    // ---- Duck logo (replaces third-party branding) ----
+    const logoW = 54, logoTop = 20;
+    function drawDuck(cx, cy){
+      doc.setFillColor(255,216,115);
+      doc.ellipse(cx, cy + 4, 15, 11, 'F');
+      doc.ellipse(cx + 9, cy - 9, 9, 8, 'F');
+      doc.setFillColor(230,140,40);
+      doc.triangle(cx + 15, cy - 10, cx + 26, cy - 7, cx + 15, cy - 4, 'F');
+      doc.setFillColor(35,35,30);
+      doc.circle(cx + 11, cy - 11, 1.3, 'F');
+      doc.setDrawColor(214,170,60);
+      doc.setLineWidth(1);
+      doc.line(cx - 7, cy + 2, cx + 5, cy + 7);
+    }
+
+    let cy = 50;
+
+    // ---- Top identity grid ----
+    const gridX = left + logoW + 10;
+    const gridW = totalW - logoW - 10;
+
+    gridRow(gridX, cy, gridW, 30, [
+      { w: 0.5, label: 'Company', value: worker.company_name },
+      { w: 0.5, label: 'Department', value: worker.department }
+    ]);
+    cy += 30;
+    gridRow(gridX, cy, gridW, 28, [
+      { w: 0.25, label: 'Employee #', value: worker.employee_number },
+      { w: 0.25, label: 'HR Number', value: worker.hr_number },
+      { w: 0.25, label: 'Fiscal nr', value: worker.fiscal_number },
+      { w: 0.25, label: 'ID number', value: worker.id_number }
+    ]);
+    cy += 28;
+    gridRow(gridX, cy, gridW, 28, [
+      { w: 0.34, label: 'Start work', value: worker.start_work },
+      { w: 0.33, label: 'End work', value: worker.end_work },
+      { w: 0.33, label: 'Function', value: worker.function_title }
+    ]);
+    cy += 28;
+    gridRow(gridX, cy, gridW, 28, [
+      { w: 1, label: 'Name, first name', value: worker.name }
+    ]);
+    cy += 28;
+
+    // duck logo box, sized to match the identity block above
+    const logoH = cy - 50;
+    doc.setFillColor(...DUCK_BG);
+    doc.roundedRect(left, 50, logoW, logoH, 8, 8, 'F');
+    drawDuck(left + logoW/2 - 4, 50 + logoH/2);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(...GREY);
+    doc.text(monthLabel, pageRight, 32, { align: 'right' });
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    doc.setTextColor(...INK);
+    doc.text('PAYSLIP', left, 34);
+
+    cy += 6;
+
+    // ---- Two-column: address / pay summary ----
+    const leftBoxW = totalW * 0.34;
+    const rightBoxW = totalW - leftBoxW;
+    const rowH = 26;
+
+    const bankRowH = rowH, payRowH = 34;
+    const rightBoxH = rowH*2 + rowH*2 + rowH*2 + rowH*2 + Math.max(bankRowH, payRowH);
+
+    doc.setDrawColor(...RULE);
+    doc.rect(left, cy, leftBoxW, rightBoxH);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(...INK);
+    doc.text(worker.name, left + 10, cy + 20);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(...GREY);
+    const addrLines = doc.splitTextToSize(worker.address || '—', leftBoxW - 20);
+    doc.text(addrLines, left + 10, cy + 35);
+
+    const rx = left + leftBoxW;
+    let ry = cy;
+
+    gridRow(rx, ry, rightBoxW, rowH, [
+      { w: 0.28, label: 'Payroll from', value: periodFrom },
+      { w: 0.28, label: 'To', value: periodTo },
+      { w: 0.22, label: 'Pay date', value: periodTo },
+      { w: 0.22, label: 'Period', value: 'Monthly' }
+    ]);
+    ry += rowH;
+    gridRow(rx, ry, rightBoxW, rowH, [
+      { w: 0.28, label: 'Regular hours', value: fmtHours(hours) },
+      { w: 0.24, label: 'Days/week', value: worker.days_per_week != null ? worker.days_per_week : '—' },
+      { w: 0.24, label: 'Pay/month', value: fmt(gross) },
+      { w: 0.24, label: 'Gross earning', value: fmt(gross) }
+    ]);
+    ry += rowH;
+    gridRow(rx, ry, rightBoxW, rowH, [
+      { w: 0.34, label: 'Vacation days/yr', value: worker.vacation_days_per_year != null ? worker.vacation_days_per_year : '—' },
+      { w: 0.33, label: 'Tax', value: '—' },
+      { w: 0.33, label: 'Premiums', value: '—' }
+    ]);
+    ry += rowH;
+    gridRow(rx, ry, rightBoxW, rowH, [
+      { w: 0.25, label: 'Balance vac. days', value: worker.balance_vacation_days != null ? worker.balance_vacation_days : '—' },
+      { w: 0.27, label: 'Zuiver voljaarsloon', value: '—' },
+      { w: 0.23, label: 'Per year tax', value: '—' },
+      { w: 0.25, label: 'Net deductions', value: fmt(netDeductions) }
+    ]);
+    ry += rowH;
+
+    gridRow(rx, ry, rightBoxW * 0.62, Math.max(bankRowH, payRowH), [
+      { w: 1, label: 'Employee bank info', value: (worker.bank_name || '—') + (worker.bank_account ? ' ' + worker.bank_account : '') }
+    ]);
+    const payX = rx + rightBoxW * 0.62;
+    const payW = rightBoxW * 0.38;
+    doc.setFillColor(...INK);
+    doc.rect(payX, ry, payW, Math.max(bankRowH, payRowH), 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8.5);
+    doc.setTextColor(245,244,236);
+    doc.text('TO PAY', payX + 10, ry + 14);
+    doc.setFontSize(13);
+    doc.text('Fl ' + fmt(netPay), payX + payW - 10, ry + Math.max(bankRowH,payRowH) - 9, { align: 'right' });
+
+    cy += rightBoxH + 22;
+
+    // ---- Itemized breakdown (reparatietoeslag placed right after regular salary) ----
+    const body = [
+      ['10', 'Regular salary', fmtHours(hours), fmt(gross) + ' +', '', fmt(ytdGross)]
+    ];
+    if(rtEligible){
+      body.push(['501', 'Reparatietoeslag (DIMP)', '', fmt(rtAmount) + ' +', '', fmt(ytdRt)]);
+    }else{
+      body.push(['501', 'Reparatietoeslag (DIMP) — not eligible', '', fmt(0), '', fmt(0)]);
+    }
+    const rtRowIndex = body.length - 1;
+    body.push(
+      ['150', 'Pension — employer', '', fmt(pensionEr) + ' +', pensionErPct.toFixed(3), fmt(ytdPensionEr)],
+      ['164', 'Pension — employee', '', fmt(pensionEe), pensionEePct.toFixed(3), fmt(ytdPensionEe)],
+      ['320', 'Pension (total)', '', fmt(pensionTotal) + ' -', (pensionErPct+pensionEePct).toFixed(3), fmt(ytdPensionEr+ytdPensionEe)],
+      ['600', 'AOV/AWW — employer', '', fmt(aovEr) + ' +', aovErPct.toFixed(3), fmt(ytdAovEr)],
+      ['601', 'AOV/AWW — employee', '', fmt(aovEe), aovEePct.toFixed(3), fmt(ytdAovEe)],
+      ['602', 'AOV/AWW (total)', '', fmt(aovTotal) + ' -', (aovErPct+aovEePct).toFixed(3), fmt(ytdAovEr+ytdAovEe)],
+      ['620', 'AZV — employer', '', fmt(azvEr) + ' +', azvErPct.toFixed(3), fmt(ytdAzvEr)],
+      ['621', 'AZV — employee', '', fmt(azvEe), azvEePct.toFixed(3), fmt(ytdAzvEe)],
+      ['622', 'AZV (total)', '', fmt(azvTotal) + ' -', (azvErPct+azvEePct).toFixed(3), fmt(ytdAzvEr+ytdAzvEe)]
+    );
+    const totalRowIndexes = new Set([body.length-7, body.length-4, body.length-1]); // the three "(total)" rows
+    const netPayRowIndex = body.length;
+    body.push(['900', 'Net pay', '', fmt(netPay), '', fmt(ytdGross - (ytdPensionEe+ytdAovEe+ytdAzvEe) + ytdRt)]);
+
+    doc.autoTable({
+      startY: cy,
+      head: [['Code', 'Description', 'Units/Hours', 'Amount', '%', 'Year to date']],
+      body: body,
+      styles: { fontSize: 8.6, cellPadding: 5.5, lineColor: RULE, lineWidth: 0.5 },
+      headStyles: { fillColor: INK, textColor: 255, fontSize: 8.3 },
+      columnStyles: {
+        0: { cellWidth: 38 },
+        2: { halign: 'right' }, 3: { halign: 'right' },
+        4: { halign: 'right' }, 5: { halign: 'right' }
+      },
+      didParseCell: function(data){
+        if(data.section !== 'body') return;
+        const isTotalRow = totalRowIndexes.has(data.row.index);
+        const isNetPayRow = data.row.index === netPayRowIndex;
+        if(isNetPayRow){
+          data.cell.styles.fontStyle = 'bold';
+          data.cell.styles.fillColor = [238,235,220];
+        }else if(data.row.index === rtRowIndex && !rtEligible){
+          data.cell.styles.fillColor = 255;
+          data.cell.styles.textColor = [160,160,150];
+          data.cell.styles.fontStyle = 'italic';
+        }else if(!isTotalRow){
+          data.cell.styles.fillColor = TINT;
+        }
+      }
+    });
+
+    const finalY = doc.lastAutoTable.finalY + 22;
+    doc.setFontSize(8);
+    doc.setTextColor(...GREY);
+    const disclaimerLines = doc.splitTextToSize(
+      'Tax, Per year tax, Zuiver voljaarsloon and Premiums are not calculated by this app and are shown as "—". Rates used for pension / AOV-AWW / AZV / reparatietoeslag are configured per worker and should be verified against current DIMP / SVB regulations.',
+      totalW
+    );
+    doc.text(disclaimerLines, left, finalY);
+
+    const filename = worker.name + ' - ' + monthLabel + '.pdf';
+    let downloaded = false;
+    try{ doc.save(filename); downloaded = true; }catch(e){ downloaded = false; }
+    try{
+      const blobUrl = doc.output('bloburl');
+      const fb = $('pdf-fallback');
+      fb.style.display = 'block';
+      fb.innerHTML = 'If the download didn\'t start: <a href="' + blobUrl + '" target="_blank" rel="noopener">open ' + filename + '</a>';
+    }catch(e){ /* ignore */ }
+
+    toast(downloaded ? 'Payslip generated.' : 'Payslip ready — use the link below.');
+  });
+
+  // ---------- Init ----------
+  async function init(){
+    $('entry-date').value = new Date().toISOString().slice(0,10);
+    $('entry-start').value = '08:00';
+    currentMonthKey = new Date().toISOString().slice(0,7);
+
+    try{
+      const [w, e] = await Promise.all([fetchWorkers(), fetchEntries()]);
+      workers = w || [];
+      entries = e || [];
+      setConnStatus('ok', 'Connected to Supabase');
+      renderAll();
+    }catch(err){
+      console.error(err);
+      const detail = (err && err.message) ? err.message : 'Unknown error';
+      setConnStatus('err', 'Database error: ' + detail);
+      renderAll();
+    }
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
