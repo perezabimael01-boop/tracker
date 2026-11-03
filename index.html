@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wat wil je aanmaken? – My Computer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="site.css">
+<style>
+  body{ --page-width:820px; }
+  .home-head{ margin:8px 0 34px; }
+  .home-head h1{ font-size:40px; line-height:1.1; letter-spacing:-0.8px; margin:0 0 10px; font-weight:700; }
+  .home-head p{ margin:0; color:var(--ink-soft); font-size:16px; max-width:52ch; }
+
+  .group{ margin:0 0 34px; }
+  .group h2{ font-size:14px; font-weight:600; color:var(--ink-soft); margin:0 0 10px; }
+  .tools{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:10px; }
+
+  .tool{
+    --spine:6px;
+    position:relative;
+    display:grid;
+    grid-template-columns:48px 1fr auto;
+    align-items:center;
+    gap:18px;
+    padding:20px 22px 20px calc(var(--spine) + 20px);
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    color:inherit; text-decoration:none;
+    overflow:hidden;
+    transition:border-color .15s ease, background-color .15s ease;
+  }
+  .tool::before{
+    content:""; position:absolute; left:0; top:0; bottom:0;
+    width:var(--spine); background:var(--tool);
+    transition:width .18s ease;
+  }
+  .tool:hover, .tool:focus-visible{ border-color:var(--tool); background:color-mix(in srgb, var(--tool-soft) 45%, var(--surface)); }
+  .tool:hover::before, .tool:focus-visible::before{ width:10px; }
+  .tool:focus-visible{ outline:3px solid var(--accent); outline-offset:2px; }
+
+  .tool-icon{
+    width:48px; height:48px; border-radius:12px;
+    display:flex; align-items:center; justify-content:center;
+    background:var(--tool-soft); color:var(--tool);
+  }
+  .tool-title{ display:flex; align-items:baseline; flex-wrap:wrap; gap:4px 10px; margin:0 0 4px; }
+  .tool-title b{ font-size:19px; font-weight:600; line-height:1.25; }
+  .tool-kind{
+    font-size:12.5px; font-weight:600; color:var(--tool);
+    background:var(--tool-soft); border-radius:999px; padding:1px 9px;
+  }
+  .tool p{ margin:0; font-size:14.5px; color:var(--ink-soft); line-height:1.5; max-width:60ch; }
+  .tool-go{ color:var(--tool); transition:transform .18s ease; }
+  .tool:hover .tool-go{ transform:translateX(3px); }
+
+  .tool[data-tool="claim"]    { --tool:var(--t-claim);     --tool-soft:var(--t-claim-soft); }
+  .tool[data-tool="statement"]{ --tool:var(--t-statement); --tool-soft:var(--t-statement-soft); }
+  .tool[data-tool="notice"]   { --tool:var(--t-notice);    --tool-soft:var(--t-notice-soft); }
+  .tool[data-tool="lease"]    { --tool:var(--t-lease);     --tool-soft:var(--t-lease-soft); }
+  .tool[data-tool="payments"] { --tool:var(--t-payments);  --tool-soft:var(--t-payments-soft); }
+
+  @media (max-width:640px){
+    .home-head h1{ font-size:30px; }
+    .tool{ grid-template-columns:40px 1fr; gap:14px; padding:16px 16px 16px calc(var(--spine) + 14px); }
+    .tool-icon{ width:40px; height:40px; border-radius:10px; }
+    .tool-go{ display:none; }
+  }
+</style>
+</head>
+<body>
+<header class="app-bar">
+  <div class="app-bar-inner">
+    <span class="app-brand" style="display:inline-flex"><span class="app-mark" aria-hidden="true"></span>My Computer &amp; Suave</span>
+  </div>
+</header>
+
+<main class="page">
+  <div class="home-head">
+    <h1>Wat wil je aanmaken?</h1>
+    <p>Kies een document. Je komt direct in het formulier, en je ziet altijd eerst een voorbeeld voordat je iets downloadt.</p>
+  </div>
+
+  <section class="group" aria-labelledby="g-docs">
+    <h2 id="g-docs">Documenten</h2>
+    <ul class="tools">
+      <li>
+        <a class="tool" data-tool="statement" href="customer-statement.html">
+          <span class="tool-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="1.5" stroke="currentColor" stroke-width="1.8"/><path d="M8 8H16M8 12H16M8 16H12.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+          <span>
+            <span class="tool-title"><b>Customer Statement</b><span class="tool-kind">Overzicht</span></span>
+            <p>Openstaand saldo, te late betalingen en eventueel 15% incassokosten, per contract opgebouwd. Hiervandaan open je ook de lease en final notice, al ingevuld.</p>
+          </span>
+          <svg class="tool-go" width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8H13M13 8L9 4M13 8L9 12" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+      </li>
+      <li>
+        <a class="tool" data-tool="notice" href="final-notice.html">
+          <span class="tool-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 5.5C4 4.67 4.67 4 5.5 4H18.5C19.33 4 20 4.67 20 5.5V16.5C20 17.33 19.33 18 18.5 18H5.5C4.67 18 4 17.33 4 16.5V5.5Z" stroke="currentColor" stroke-width="1.8"/><path d="M4.5 5.5L12 12L19.5 5.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <span>
+            <span class="tool-title"><b>Final Notice</b><span class="tool-kind">Aanmaning</span></span>
+            <p>Laatste betalingsherinnering als e-mail, met automatische escalatiedatum. Klaar om als PDF te bewaren.</p>
+          </span>
+          <svg class="tool-go" width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8H13M13 8L9 4M13 8L9 12" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+      </li>
+      <li>
+        <a class="tool" data-tool="claim" href="bevel-tot-betaling.html">
+          <span class="tool-icon"><svg width="22" height="22" viewBox="0 0 48 48" fill="none" aria-hidden="true"><path d="M13 19L24 12L35 19V29C35 34 30 37 24 39C18 37 13 34 13 29V19Z" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/><path d="M19 25L23 29L30 21" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <span>
+            <span class="tool-title"><b>Bevel tot Betaling</b><span class="tool-kind">Verzoekschrift</span></span>
+            <p>Verzoekschrift aan het Gerecht om de gedaagde te laten veroordelen tot betaling. Download als Word of PDF.</p>
+          </span>
+          <svg class="tool-go" width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8H13M13 8L9 4M13 8L9 12" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+      </li>
+      <li>
+        <a class="tool" data-tool="lease" href="lease-agreement.html">
+          <span class="tool-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="11" rx="1.2" stroke="currentColor" stroke-width="1.8"/><path d="M2 18.5H22" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M9.5 15.5L8.7 18.5M14.5 15.5L15.3 18.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span>
+          <span>
+            <span class="tool-title"><b>Computer Lease Contract</b><span class="tool-kind">Huurovereenkomst</span></span>
+            <p>Huurovereenkomst met koopoptie. Looptijd, einddatum en contractnummer worden automatisch ingevuld.</p>
+          </span>
+          <svg class="tool-go" width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8H13M13 8L9 4M13 8L9 12" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+      </li>
+    </ul>
+  </section>
+
+  <section class="group" aria-labelledby="g-suave">
+    <h2 id="g-suave">In Suave</h2>
+    <ul class="tools">
+      <li>
+        <a class="tool" data-tool="payments" href="betalingen-boeken.html">
+          <span class="tool-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 3.5H14L18 7.5V20.5H6V3.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 3.5V7.5H18" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 14L11.2 16.2L15.2 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <span>
+            <span class="tool-title"><b>Betalingen boeken</b><span class="tool-kind">Betalingen</span></span>
+            <p>Boek de betalingen uit het rapport van de deurwaarder automatisch in Suave, met een lijst van wat wel en niet geboekt is.</p>
+          </span>
+          <svg class="tool-go" width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8H13M13 8L9 4M13 8L9 12" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+      </li>
+    </ul>
+  </section>
+</main>
+
+<script src="help-chat.js"></script>
+</body>
+</html>

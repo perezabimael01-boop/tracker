@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bevel tot Betaling</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="site.css">
+<style>
+  body{ --page-width:860px; }
+  .card{
+    background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+    padding:24px 26px 26px; margin:0 0 16px;
+  }
+  .card h2{ font-size:17px; font-weight:600; margin:0 0 18px; display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; }
+  .card label{ margin-top:16px; }
+  .card label.first{ margin-top:0; }
+  .row{ gap:0 18px; }
+  .row > div > label.first{ margin-top:16px; }
+  .card > .row:first-of-type > div > label.first{ margin-top:0; }
+  .card > select + .row > div > label.first{ margin-top:16px; }
+  #pdfStatus{ margin-top:8px; }
+  .c_invoice{ font-variant-numeric:tabular-nums; letter-spacing:.3px; }
+  .fixed-value{
+    display:flex; align-items:center; gap:10px;
+    padding:10px 12px; border-radius:var(--radius-sm);
+    background:var(--surface-2); border:1px solid var(--line); color:var(--ink-soft); font-size:14.5px;
+  }
+  .fixed-value b{ color:var(--ink); }
+
+  /* agreements (rendered by addContract) */
+  #contracts{ display:flex; flex-direction:column; gap:12px; }
+  .contract{
+    position:relative;
+    border:1px solid var(--line); border-left:4px solid var(--tool);
+    border-radius:var(--radius-sm);
+    background:var(--surface-2);
+    padding:16px 18px 16px;
+  }
+  .contract .row > div > label.first{ margin-top:0; }
+  .contract > label.first{ margin-top:14px; }
+  .contract .remove{
+    position:absolute; top:10px; right:10px;
+    background:none; border:none; color:var(--danger);
+    font-size:13.5px; font-weight:600; cursor:pointer; padding:4px 8px; border-radius:5px;
+  }
+  .contract .remove:hover{ background:var(--danger-soft); }
+  .contract .row{ padding-right:84px; }
+  .checkline{ display:flex; align-items:center; gap:10px; margin-top:14px; }
+  .checkline label{ margin:0 !important; font-weight:500; cursor:pointer; }
+
+  button.add{
+    margin-top:14px;
+    display:inline-flex; align-items:center; gap:6px;
+    background:var(--surface); color:var(--ink);
+    border:1px solid var(--line-strong); border-radius:var(--radius-sm);
+    padding:9px 16px; min-height:40px; font-size:14.5px; font-weight:600; cursor:pointer;
+  }
+  button.add:hover{ background:var(--surface-2); border-color:var(--ink-soft); }
+  button.add.danger{ color:var(--danger); border-color:#EBB4AE; }
+  button.add.danger:hover{ background:var(--danger-soft); }
+  .kantoor-actions{ display:flex; gap:10px; flex-wrap:wrap; margin-top:4px; }
+  #saveKantoorRow{ margin-top:16px; padding:16px; border-radius:var(--radius-sm); background:var(--surface-2); border:1px solid var(--line); }
+
+  .generate-bar{
+    position:sticky; bottom:0; z-index:5;
+    margin:22px -12px 0; padding:12px;
+    background:color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter:blur(6px);
+  }
+  button.generate{
+    width:100%; min-height:50px;
+    background:var(--brand); color:#fff; border:none; border-radius:var(--radius-sm);
+    font-size:16px; font-weight:600; cursor:pointer;
+  }
+  #mchat-root:not(.open){ bottom:92px; }
+  button.generate:hover{ background:var(--brand-ink); }
+  .error{ display:none; }
+  [aria-invalid="true"]{ border-color:var(--danger) !important; background:var(--danger-soft) !important; }
+  .error.alert-error{ margin-top:10px; }
+
+  #output{ display:none; margin-top:28px; animation:revealPaper .3s ease-out; scroll-margin-top:16px; }
+  @keyframes revealPaper{ from{ opacity:0; transform:translateY(8px);} to{ opacity:1; transform:none; } }
+  .output-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin:0 0 12px; flex-wrap:wrap; }
+  .output-head h2{ font-size:17px; font-weight:600; margin:0; }
+  .downloads{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:14px; }
+  button.download{
+    min-height:46px; border-radius:var(--radius-sm); cursor:pointer;
+    font-size:15px; font-weight:600;
+    background:var(--surface); color:var(--ink); border:1px solid var(--line-strong);
+  }
+  button.download:hover{ background:var(--surface-2); border-color:var(--ink-soft); }
+  button.download.main{ background:var(--brand); color:#fff; border-color:var(--brand); }
+  button.download.main:hover{ background:var(--brand-ink); }
+  @media (max-width:640px){
+    .downloads{ grid-template-columns:1fr; }
+    .contract .row{ padding-right:0; }
+    .contract{ padding-top:40px; }
+    #docPreview{ padding:22px 18px !important; }
+  }
+  #docPreview {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 2px;
+    padding: 34px 40px;
+    font-family: "Times New Roman", Times, serif;
+    font-size: 12.5pt;
+    line-height: 1.55;
+    max-height: 560px;
+    overflow-y: auto;
+    box-shadow: 0 10px 28px -14px rgba(35, 42, 59, 0.35), 0 2px 6px rgba(35, 42, 59, 0.08);
+  }
+  #docPreview h1 { text-align: center; font-size: 13.5pt; letter-spacing: 1px; }
+  #docPreview p { text-align: justify; margin: 0 0 0.8em 0; }
+  #docPreview ol.paragrafen { padding-left: 1.3em; }
+  #docPreview ol.paragrafen > li { text-align: justify; margin-bottom: 0.7em; }
+  #docPreview ol.sub { list-style: none; padding-left: 1.2em; margin: 0.2em 0; }
+  #docPreview .petitum-kop { font-weight: bold; margin-top: 1.3em; }
+  #docPreview ul.doc-bullets {
+    list-style: none;
+    margin: 0.4em 0 0.9em 0;
+    padding: 0;
+  }
+  #docPreview ul.doc-bullets > li {
+    position: relative;
+    padding-left: 20px;
+    margin-bottom: 6px;
+    text-align: justify;
+  }
+  #docPreview ul.doc-bullets > li::before {
+    content: "•";
+    position: absolute;
+    left: 4px;
+    color: #96702A;
+    font-weight: bold;
+  }
+  #docPreview ol.petitum > li { text-align: justify; margin-bottom: 0.7em; }
+</style>
+</head>
+<body data-tool="claim">
+<header class="app-bar">
+  <div class="app-bar-inner">
+    <a class="app-back" href="index.html"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M13 8H3M3 8L7 4M3 8L7 12" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>Alle documenten</a>
+    <span class="app-brand"><span class="app-mark" aria-hidden="true"></span>My Computer &amp; Suave</span>
+  </div>
+</header>
+<main class="page wrap">
+  <div class="page-head">
+    <h1>Bevel tot Betaling</h1>
+    <p>Kies eerst de eiseres en vul dan de gegevens per zaak in. Je krijgt eerst een voorbeeld te zien voordat je downloadt.</p>
+  </div>
+
+  <div class="card">
+    <h2>Customer Statement uploaden <span class="opt">optioneel</span></h2>
+    <label class="first" for="pdfUpload">PDF van My Suave (Customer Statement)</label>
+    <input type="file" id="pdfUpload" accept="application/pdf" onchange="handlePdfUpload(this)">
+    <div class="hint" id="pdfStatus">Vult automatisch naam, openstaand bedrag en de overeenkomsten (contract#, merchant, datum van M1) in. Alles blijft daarna gewoon bewerkbaar.</div>
+  </div>
+
+  <div class="card">
+    <h2>Eiseres</h2>
+    <label class="first" for="eiseresPreset">Eiseres</label>
+    <select id="eiseresPreset">
+      <option value="suave">Suave Solutions LLC (buitenlandse vennootschap, VS)</option>
+      <option value="mimi">Mimi Computer &amp; Business Products N.V. (Aruba)</option>
+    </select>
+    <div class="hint">Bepaalt de openingsalinea van het verzoekschrift (naam, rechtsvorm en vestigingsplaats van eiseres).</div>
+  </div>
+
+  <div class="card">
+    <h2>Gedaagde (debiteur)</h2>
+    <label class="first" for="naam_debiteur">Naam gedaagde</label>
+    <input type="text" id="naam_debiteur" placeholder="bijv. Juan Perez">
+
+    <div class="row">
+      <div>
+        <label for="land_debiteur">Land (woonplaats)</label>
+        <input type="text" id="land_debiteur" placeholder="bijv. Venezuela">
+      </div>
+      <div>
+        <label for="adres_debiteur">Adres</label>
+        <input type="text" id="adres_debiteur" placeholder="bijv. Calle Falsa 123">
+      </div>
+    </div>
+
+    <label for="geboortedatum_debiteur">Geboortedatum gedaagde <span class="opt">optioneel</span></label>
+    <input type="date" id="geboortedatum_debiteur">
+    <div class="hint">Leeg laten geeft [geboortedatum] in de tekst.</div>
+
+    <label for="bedrag_hoofdsom">Openstaand bedrag (Afl.)</label>
+    <input type="number" id="bedrag_hoofdsom" step="0.01" placeholder="bijv. 4707.48">
+    <div class="hint">Gebruik een punt voor de decimalen. De opmaak (Afl. 4.707,48) wordt automatisch gedaan.</div>
+
+    <label>Buitengerechtelijke incassokosten</label>
+    <div class="fixed-value"><b>15%</b> van het openstaand bedrag, wordt automatisch berekend</div>
+
+  </div>
+
+  <div class="card">
+    <h2>Kantoorgegevens (namens eiseres)</h2>
+    <label class="first" for="kantoorPreset">Kantoor</label>
+    <select id="kantoorPreset" onchange="applyKantoorPreset()">
+      <option value="custom">Aangepast (handmatig invullen)</option>
+      <option value="roos">Roos Gerechtsdeurwaarders en Incasso N.V. (automatisch invullen)</option>
+    </select>
+    <div class="row">
+      <div>
+        <label class="first" for="kantooradres">Kantooradres</label>
+        <input type="text" id="kantooradres" placeholder="bijv. Kantoorstraat 1">
+      </div>
+      <div>
+        <label class="first" for="kantoornaam">Kantoornaam</label>
+        <input type="text" id="kantoornaam" placeholder="bijv. Advocatenkantoor X">
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label for="kantoorstad">Kantoorstad</label>
+        <input type="text" id="kantoorstad" placeholder="bijv. Oranjestad">
+      </div>
+      <div>
+        <label for="kantoorland">Kantoorland</label>
+        <input type="text" id="kantoorland" value="Aruba">
+      </div>
+    </div>
+    <label for="gemachtigde">Gemachtigde persoon</label>
+    <input type="text" id="gemachtigde" placeholder="bijv. Mr. J. Jansen">
+
+    <div class="kantoor-actions">
+      <button class="add" type="button" onclick="showSaveKantoorRow()">+ Huidig kantoor opslaan</button>
+      <button class="add danger" type="button" id="deleteKantoorBtn" style="display:none;" onclick="deleteSelectedKantoor()">Verwijderen</button>
+    </div>
+
+    <div id="saveKantoorRow" style="display:none; margin-top:12px;">
+      <label class="first" for="newKantoorLabel">Naam voor dit kantoor (zoals het in de lijst verschijnt)</label>
+      <input type="text" id="newKantoorLabel" placeholder="bijv. Kantoor Jansen &amp; Partners">
+      <div class="kantoor-actions" style="margin-top:4px;">
+        <button class="add" type="button" onclick="confirmSaveKantoor()">Opslaan</button>
+        <button class="add" type="button" onclick="cancelSaveKantoor()">Annuleren</button>
+      </div>
+      <div class="hint">Blijft bewaard in deze browser, ook na herladen. Je kunt het later weer verwijderen.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Overeenkomsten / facturen</h2>
+    <div id="contracts"></div>
+    <button class="add" type="button" onclick="addContract()">+ Overeenkomst toevoegen</button>
+    <div class="hint" style="margin-top:12px;">
+      Als een overeenkomst <strong>in de fysieke winkel</strong> is gesloten, komt hij zowel in punt 2 (huurkoopovereenkomsten) als punt 3 (overname vordering) van het verzoekschrift. Is dat niet het geval, dan komt hij alleen in punt 2.
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Schuldbekentenis <span class="opt">optioneel</span></h2>
+    <div class="checkline" style="margin-top:0;">
+      <input type="checkbox" id="heeft_schuldbekentenis" onchange="toggleSchuldbekentenis()">
+      <label for="heeft_schuldbekentenis">Gedaagde heeft een schuldbekentenis met afbetalingsregeling getekend</label>
+    </div>
+    <div id="schuldbekentenisFields" style="display:none; margin-top:10px;">
+      <div class="row">
+        <div>
+          <label class="first" for="datum_schuldbekentenis">Datum schuldbekentenis</label>
+          <input type="date" id="datum_schuldbekentenis">
+        </div>
+        <div>
+          <label class="first" for="datum_ingang_termijnen">Datum ingang maandelijkse termijnen</label>
+          <input type="date" id="datum_ingang_termijnen">
+        </div>
+      </div>
+      <label for="bedrag_betaald">Reeds betaald bedrag (Afl.)</label>
+      <input type="number" id="bedrag_betaald" step="0.01" placeholder="0.00 als nog niets is betaald">
+      <div class="hint">Vul 0 in (of laat leeg) als gedaagde nog niets heeft betaald. De tekst past zich daar automatisch op aan.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Overige data</h2>
+    <div class="row">
+      <div>
+        <label class="first" for="datum_sommatie_exploot">Datum sommatie-exploot <span class="opt">optioneel</span></label>
+        <input type="date" id="datum_sommatie_exploot">
+        <div class="hint">Leeg laten geeft [datum] in de tekst.</div>
+      </div>
+      <div>
+        <label class="first" for="datum_sommatiebrief">Datum sommatiebrief <span class="opt">optioneel</span></label>
+        <input type="date" id="datum_sommatiebrief">
+        <div class="hint">Leeg laten haalt de zin over de sommatiebrief weg.</div>
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label for="ondertekening_land">Plaats van ondertekening</label>
+        <input type="text" id="ondertekening_land" value="Aruba">
+      </div>
+      <div>
+        <label for="ondertekening_datum">Datum van ondertekening</label>
+        <input type="date" id="ondertekening_datum">
+      </div>
+    </div>
+  </div>
+
+  <div class="generate-bar">
+    <button class="generate" type="button" onclick="generate()">Genereer verzoekschrift</button>
+    <div class="error alert-error" id="errorBox" role="alert"></div>
+  </div>
+
+  <div id="output">
+    <div class="output-head"><h2>Voorbeeld</h2><span class="hint" style="margin:0">Controleer de tekst en download dan.</span></div>
+    <div id="docPreview"></div>
+    <div class="downloads">
+      <button class="download main" type="button" onclick="downloadDocx()">Download als Word-document (.docx)</button>
+      <button class="download" type="button" onclick="downloadPdf()">Download als PDF</button>
+    </div>
+  </div>
+</main>
+
+<script>
+const INCASSO_PERCENTAGE = 15; // vast percentage — pas hier aan indien nodig
+
+// Elke eiseres-preset levert een functie die, gegeven de kantoorgegevens, de openingsalinea (markdown) bouwt
+const EISERES_PRESETS = {
+  suave: (k) => `**De vennootschap naar buitenlands recht SUAVE SOLUTIONS LLC**, handelende onder de naam “**SUAVE SOLUTIONS LLC**”, gevestigd in de Verenigde Staten van Amerika, hierna “**eiseres**” genoemd, te dezer zake domicilie kiezende aan **${k.kantooradres}** te **${k.kantoorstad}** in **${k.kantoorland}**, ten kantore van **${k.kantoornaam}**, van welk kantoor **${k.gemachtigde}** verklaart door eiseres te zijn gemachtigd ten deze voor haar te occuperen, alsmede om dit verzoekschrift voor en namens haar te ondertekenen en in te dienen (prod. 1).`,
+  mimi: (k) => `**De naamloze vennootschap MIMI COMPUTER & BUSINESS PRODUCTS N.V.**, gevestigd te Oranjestad, Aruba, kantoorhoudende aan de Pedro Gallego Straat 4, hierna “**eiseres**” genoemd, te dezer zake domicilie kiezende aan **${k.kantooradres}** te **${k.kantoorstad}** in **${k.kantoorland}**, ten kantore van **${k.kantoornaam}**, van welk kantoor **${k.gemachtigde}** verklaart door eiseres te zijn gemachtigd ten deze voor haar te occuperen, alsmede om dit verzoekschrift voor en namens haar te ondertekenen en in te dienen (prod. 1).`
+};
+
+// TODO: vul de echte gegevens van Roosdeurwaarder hieronder in
+const KANTOOR_PRESETS = {
+  roos: {
+    kantooradres: 'Weststraat nr. 30',
+    kantoorstad: 'Oranjestad',
+    kantoorland: 'Aruba',
+    kantoornaam: 'Roos Gerechtsdeurwaarders en Incasso N.V.',
+    gemachtigde: 'dhr. Bernard R. Roos'
+  }
+};
+
+const KANTOOR_STORAGE_KEY = 'bevel_custom_kantoren_v1';
+const KANTOOR_FIELDS = ['kantooradres', 'kantoorstad', 'kantoorland', 'kantoornaam', 'gemachtigde'];
+
+function loadCustomKantoren() {
+  try {
+    const raw = localStorage.getItem(KANTOOR_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveCustomKantoren(list) {
+  try {
+    localStorage.setItem(KANTOOR_STORAGE_KEY, JSON.stringify(list));
+    return true;
+  } catch (e) {
+    console.error(e);
+    return false;
+  }
+}
+
+function renderKantoorOptions() {
+  const select = document.getElementById('kantoorPreset');
+  const current = select.value;
+  select.innerHTML = '';
+  const builtIn = [
+    { value: 'custom', label: 'Aangepast (handmatig invullen)' },
+    { value: 'roos', label: 'Roos Gerechtsdeurwaarders en Incasso N.V. (automatisch invullen)' }
+  ];
+  builtIn.forEach(o => {
+    const opt = document.createElement('option');
+    opt.value = o.value;
+    opt.textContent = o.label;
+    select.appendChild(opt);
+  });
+  loadCustomKantoren().forEach(k => {
+    const opt = document.createElement('option');
+    opt.value = 'custom-' + k.id;
+    opt.textContent = k.label + ' (opgeslagen)';
+    select.appendChild(opt);
+  });
+  if ([...select.options].some(o => o.value === current)) select.value = current;
+}
+
+function applyKantoorPreset() {
+  const preset = document.getElementById('kantoorPreset').value;
+  const deleteBtn = document.getElementById('deleteKantoorBtn');
+  cancelSaveKantoor();
+
+  if (preset === 'custom') {
+    KANTOOR_FIELDS.forEach(f => { document.getElementById(f).disabled = false; });
+    deleteBtn.style.display = 'none';
+    return;
+  }
+
+  let data = KANTOOR_PRESETS[preset];
+  if (!data && preset.startsWith('custom-')) {
+    const id = preset.slice('custom-'.length);
+    data = loadCustomKantoren().find(k => String(k.id) === id);
+  }
+  if (!data) return;
+
+  KANTOOR_FIELDS.forEach(f => {
+    const el = document.getElementById(f);
+    el.value = data[f];
+    el.disabled = true;
+  });
+  deleteBtn.style.display = preset.startsWith('custom-') ? 'inline-block' : 'none';
+  deleteBtn.textContent = 'Verwijderen';
+}
+
+function showSaveKantoorRow() {
+  for (const f of KANTOOR_FIELDS) {
+    if (!clean(document.getElementById(f).value)) {
+      alert('Vul eerst alle kantoorvelden in voordat je dit kantoor opslaat.');
+      return;
+    }
+  }
+  document.getElementById('newKantoorLabel').value = '';
+  document.getElementById('saveKantoorRow').style.display = 'block';
+}
+
+function cancelSaveKantoor() {
+  document.getElementById('saveKantoorRow').style.display = 'none';
+}
+
+function confirmSaveKantoor() {
+  const label = clean(document.getElementById('newKantoorLabel').value);
+  if (!label) {
+    alert('Geef dit kantoor een naam.');
+    return;
+  }
+  const values = {};
+  KANTOOR_FIELDS.forEach(f => { values[f] = clean(document.getElementById(f).value); });
+
+  const list = loadCustomKantoren();
+  const id = Date.now().toString(36);
+  list.push({ id, label, ...values });
+  const ok = saveCustomKantoren(list);
+
+  renderKantoorOptions();
+  cancelSaveKantoor();
+  document.getElementById('kantoorPreset').value = 'custom-' + id;
+  applyKantoorPreset();
+
+  if (!ok) {
+    alert('Kon dit kantoor niet blijvend opslaan in deze omgeving (browseropslag niet beschikbaar). Het is nu wel ingevuld, maar bij het openen van een nieuwe sessie moet je het opnieuw opslaan — download het bestand en open het rechtstreeks in je browser voor blijvende opslag.');
+  }
+}
+
+let deleteConfirmPending = false;
+function deleteSelectedKantoor() {
+  const btn = document.getElementById('deleteKantoorBtn');
+  const preset = document.getElementById('kantoorPreset').value;
+  if (!preset.startsWith('custom-')) return;
+
+  if (!deleteConfirmPending) {
+    deleteConfirmPending = true;
+    btn.textContent = 'Zeker weten? Klik nogmaals';
+    setTimeout(() => { deleteConfirmPending = false; btn.textContent = 'Verwijderen'; }, 3000);
+    return;
+  }
+  deleteConfirmPending = false;
+
+  const id = preset.slice('custom-'.length);
+  const list = loadCustomKantoren().filter(k => String(k.id) !== id);
+  saveCustomKantoren(list);
+  renderKantoorOptions();
+  document.getElementById('kantoorPreset').value = 'custom';
+  applyKantoorPreset();
+}
+
+const KANTOOR_LAST_KEY = 'bevel_last_kantoor_v1';
+
+// Auto-saves whatever is typed in "Aangepast" mode, debounced, so the fields
+// are remembered even without clicking "+ Huidig kantoor opslaan"
+let kantoorAutoSaveTimer = null;
+function autoSaveKantoorFields() {
+  if (document.getElementById('kantoorPreset').value !== 'custom') return;
+  clearTimeout(kantoorAutoSaveTimer);
+  kantoorAutoSaveTimer = setTimeout(() => {
+    const values = {};
+    KANTOOR_FIELDS.forEach(f => { values[f] = document.getElementById(f).value; });
+    try { localStorage.setItem(KANTOOR_LAST_KEY, JSON.stringify(values)); } catch (e) { /* ignore */ }
+  }, 300);
+}
+
+function restoreLastKantoorFields() {
+  try {
+    const raw = localStorage.getItem(KANTOOR_LAST_KEY);
+    if (!raw) return;
+    const values = JSON.parse(raw);
+    if (document.getElementById('kantoorPreset').value === 'custom') {
+      KANTOOR_FIELDS.forEach(f => {
+        if (values[f]) document.getElementById(f).value = values[f];
+      });
+    }
+  } catch (e) { /* ignore */ }
+}
+
+let contractCount = 0;
+
+function toggleSchuldbekentenis() {
+  const checked = document.getElementById('heeft_schuldbekentenis').checked;
+  document.getElementById('schuldbekentenisFields').style.display = checked ? 'block' : 'none';
+}
+
+function addContract() {
+  contractCount++;
+  const id = contractCount;
+  const div = document.createElement('div');
+  div.className = 'contract';
+  div.id = 'contract-' + id;
+  div.innerHTML = `
+    <button class="remove" type="button" aria-label="Overeenkomst verwijderen" onclick="document.getElementById('contract-${id}').remove()">Verwijderen</button>
+    <div class="row">
+      <div>
+        <label class="first" for="datum-${id}">Datum overeenkomst</label>
+        <input type="date" class="c_datum" id="datum-${id}">
+      </div>
+      <div>
+        <label class="first" for="invoice-${id}">Invoice ID</label>
+        <input type="text" class="c_invoice" id="invoice-${id}" placeholder="bijv. MC122187">
+      </div>
+    </div>
+    <label class="first" for="merchant-${id}">Merchant (verkoper)</label>
+    <input type="text" class="c_merchant" id="merchant-${id}" placeholder="bijv. My Computer">
+    <div class="checkline">
+      <input type="checkbox" class="c_instore" id="instore-${id}">
+      <label for="instore-${id}">Gekocht in fysieke winkel</label>
+    </div>
+  `;
+  document.getElementById('contracts').appendChild(div);
+}
+addContract(); // start with one row
+renderKantoorOptions();
+restoreLastKantoorFields();
+KANTOOR_FIELDS.forEach(f => {
+  document.getElementById(f).addEventListener('input', autoSaveKantoorFields);
+});
+
+if (typeof pdfjsLib !== 'undefined') {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+
+const PDF_MONTHS = { Jan: '01', Feb: '02', Mar: '03', Apr: '04', May: '05', Jun: '06', Jul: '07', Aug: '08', Sep: '09', Oct: '10', Nov: '11', Dec: '12' };
+
+// "26-Jan-2025" -> "2025-01-26" (for an <input type="date">)
+function pdfDateToInputValue(str) {
+  const m = (str || '').match(/(\d{2})-([A-Za-z]{3})-(\d{4})/);
+  if (!m || !PDF_MONTHS[m[2]]) return '';
+  return `${m[3]}-${PDF_MONTHS[m[2]]}-${m[1]}`;
+}
+
+async function extractPdfText(file) {
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+  let text = '';
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    text += content.items.map(it => it.str).join(' ') + '\n';
+  }
+  return text;
+}
+
+function parseCustomerStatement(text) {
+  // Currency label varies per statement (ANG, FL, Afl., ...) — match any short label before the amount
+  const balanceMatch = text.match(/Open Balance\s*:?\s*[A-Za-z.]{0,6}\s*([\d,]+\.\d{2})/i);
+  const openBalance = balanceMatch ? parseFloat(balanceMatch[1].replace(/,/g, '')) : null;
+
+  const nameMatch = text.match(/Account:\s*([^\n]+?)\s+Open Balance/i);
+  const naam = nameMatch ? nameMatch[1].trim() : null;
+
+  // Matches the first row of each contract group (always invoice "M1"): contract#, vendor (any name,
+  // including multi-word like "My Computer"), M1-date. Vendor names are letters/spaces/&.'- only, so
+  // they never swallow the "M1" that follows.
+  const contractRegex = /([A-Za-z]{2,}\d{3,})\s+([A-Za-z][A-Za-z&.'-]*(?:\s+[A-Za-z][A-Za-z&.'-]*)*)\s+M1\s+(\d{2}-[A-Za-z]{3}-\d{4})\s+Monthly Payment/g;
+  const contracts = [];
+  let m;
+  while ((m = contractRegex.exec(text)) !== null) {
+    contracts.push({ contract: m[1], vendor: m[2].trim(), date: m[3] });
+  }
+  return { openBalance, naam, contracts };
+}
+
+async function handlePdfUpload(input) {
+  const file = input.files[0];
+  const statusEl = document.getElementById('pdfStatus');
+  if (!file) return;
+  statusEl.textContent = 'Bezig met inlezen van de PDF…';
+  try {
+    const text = await extractPdfText(file);
+    const data = parseCustomerStatement(text);
+
+    if (data.naam) document.getElementById('naam_debiteur').value = data.naam;
+    if (data.openBalance != null) document.getElementById('bedrag_hoofdsom').value = data.openBalance.toFixed(2);
+
+    document.getElementById('contracts').innerHTML = '';
+    contractCount = 0;
+
+    if (data.contracts.length === 0) {
+      addContract();
+      statusEl.textContent = 'Geen contracten herkend in dit bestand — vul de gegevens handmatig in.';
+      return;
+    }
+
+    data.contracts.forEach(c => {
+      addContract();
+      const rows = document.querySelectorAll('.contract');
+      const row = rows[rows.length - 1];
+      row.querySelector('.c_datum').value = pdfDateToInputValue(c.date);
+      row.querySelector('.c_invoice').value = c.contract;
+      row.querySelector('.c_merchant').value = c.vendor;
+    });
+
+    statusEl.textContent = `${data.contracts.length} overeenkomst(en) automatisch ingevuld op basis van dit bestand — controleer en pas aan waar nodig (o.a. "in fysieke winkel gekocht" staat nog uit).`;
+  } catch (e) {
+    console.error(e);
+    statusEl.textContent = 'Kon dit PDF-bestand niet lezen. Vul de gegevens handmatig in.';
+  }
+}
+
+function fmtBedrag(num) {
+  return num.toLocaleString('nl-NL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function fmtDatum(dateStr) {
+  if (!dateStr) return '[datum]';
+  const d = new Date(dateStr + 'T00:00:00');
+  return d.toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+function escHtml(str) {
+  return (str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// Strips accidental ** sequences from user input so it can't break bold-markdown parsing
+function clean(str) {
+  return (str || '').trim().replace(/\*\*/g, '');
+}
+
+// "**bold**" markdown -> HTML for the on-screen preview
+function mdToHtml(md) {
+  return escHtml(md).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+}
+
+// "**bold**" markdown -> plain run segments (bold flag), used for the real docx
+function mdToRuns(md) {
+  return (md || '').split('**').map((text, i) => ({ text, bold: i % 2 === 1 }));
+}
+
+function parasToPreviewHtml(paras) {
+  const out = [];
+  let i = 0;
+  while (i < paras.length) {
+    const p = paras[i];
+    if (p.text !== undefined) {
+      out.push(`<h1>${escHtml(p.text)}</h1>`);
+      i++;
+      continue;
+    }
+    if (p.bullet) {
+      const items = [];
+      while (i < paras.length && paras[i].bullet) {
+        items.push(`<li>${mdToHtml(paras[i].md || '')}</li>`);
+        i++;
+      }
+      out.push(`<ul class="doc-bullets">${items.join('')}</ul>`);
+      continue;
+    }
+    if (p.lines) {
+      const styles = [];
+      if (p.center) styles.push('text-align:center');
+      else if (p.align === 'right') styles.push('text-align:right');
+      else if (p.justify) styles.push('text-align:justify');
+      const html = p.lines.map(l => escHtml(l)).join('<br>');
+      out.push(`<p style="${styles.join(';')}">${html}</p>`);
+      i++;
+      continue;
+    }
+    const styles = [];
+    if (p.center) styles.push('text-align:center');
+    else if (p.align === 'right') styles.push('text-align:right');
+    else if (p.justify) styles.push('text-align:justify');
+    if (p.indent) styles.push('margin-left:24px');
+    if (p.spacingBefore) styles.push('margin-top:1.3em');
+    const html = mdToHtml(p.md || '');
+    out.push(`<p style="${styles.join(';')}">${html || '&nbsp;'}</p>`);
+    i++;
+  }
+  return out.join('\n');
+}
+
+function escXml(str) {
+  return (str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function runXml(text, bold, size) {
+  const rPr = `<w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/>${bold ? '<w:b/>' : ''}<w:sz w:val="${size}"/></w:rPr>`;
+  return `<w:r>${rPr}<w:t xml:space="preserve">${escXml(text)}</w:t></w:r>`;
+}
+
+function paraXml(p) {
+  if (p.lines) {
+    const size = 24;
+    let jc = 'left';
+    if (p.center) jc = 'center';
+    else if (p.align === 'right') jc = 'right';
+    else if (p.justify) jc = 'both';
+    const rPrOpen = `<w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="${size}"/></w:rPr>`;
+    const runsXml = p.lines.map((line, idx) =>
+      `<w:r>${rPrOpen}${idx > 0 ? '<w:br/>' : ''}<w:t xml:space="preserve">${escXml(line)}</w:t></w:r>`
+    ).join('');
+    return `<w:p><w:pPr><w:jc w:val="${jc}"/></w:pPr>${runsXml}</w:p>`;
+  }
+  let runs, size;
+  if (p.text !== undefined) {
+    runs = [{ text: p.text, bold: true }];
+    size = 27; // ~13.5pt, matches the preview's h1
+  } else if (p.bullet) {
+    runs = [{ text: '•\t', bold: false }, ...mdToRuns(p.md || '')];
+    size = 24;
+  } else {
+    runs = mdToRuns(p.md || '');
+    size = 24; // 12pt
+  }
+  const runsXml = runs.map(r => runXml(r.text, r.bold, size)).join('');
+  let jc = 'left';
+  if (p.center || p.text !== undefined) jc = 'center';
+  else if (p.align === 'right') jc = 'right';
+  else if (p.justify || p.bullet) jc = 'both';
+  const ind = p.bullet ? '<w:ind w:left="720" w:hanging="360"/>' : (p.indent ? '<w:ind w:left="480"/>' : '');
+  const spacing = p.spacingBefore ? '<w:spacing w:before="240"/>' : '';
+  return `<w:p><w:pPr>${spacing}${ind}<w:jc w:val="${jc}"/></w:pPr>${runsXml}</w:p>`;
+}
+
+const CONTENT_TYPES_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+<Default Extension="xml" ContentType="application/xml"/>
+<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+</Types>`;
+
+const RELS_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>`;
+
+function buildDocumentXml(paras) {
+  const body = paras.map(paraXml).join('');
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+<w:body>${body}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1417" w:right="1417" w:bottom="1417" w:left="1417" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr></w:body>
+</w:document>`;
+}
+
+function markInvalid(el) {
+  if (!el) return;
+  el.setAttribute('aria-invalid', 'true');
+  el.addEventListener('input', () => el.removeAttribute('aria-invalid'), { once: true });
+}
+
+function generate() {
+  const errorBox = document.getElementById('errorBox');
+  errorBox.style.display = 'none';
+
+  const naam_debiteur = clean(document.getElementById('naam_debiteur').value);
+  const land_debiteur = clean(document.getElementById('land_debiteur').value);
+  const adres_debiteur = clean(document.getElementById('adres_debiteur').value);
+  const geboortedatum_debiteur = fmtDatum(document.getElementById('geboortedatum_debiteur').value);
+  const hoofdsomRaw = parseFloat(document.getElementById('bedrag_hoofdsom').value);
+  const kantooradres = clean(document.getElementById('kantooradres').value);
+  const kantoorstad = clean(document.getElementById('kantoorstad').value);
+  const kantoorland = clean(document.getElementById('kantoorland').value);
+  const kantoornaam = clean(document.getElementById('kantoornaam').value);
+  const gemachtigde = clean(document.getElementById('gemachtigde').value);
+
+  // Mark exactly which required fields are empty, and name them in the error.
+  document.querySelectorAll('[aria-invalid="true"]').forEach(el => el.removeAttribute('aria-invalid'));
+  const verplicht = [
+    ['naam_debiteur', 'naam gedaagde', naam_debiteur],
+    ['land_debiteur', 'land', land_debiteur],
+    ['adres_debiteur', 'adres', adres_debiteur],
+    ['bedrag_hoofdsom', 'openstaand bedrag', !isNaN(hoofdsomRaw)],
+    ['kantooradres', 'kantooradres', kantooradres],
+    ['kantoornaam', 'kantoornaam', kantoornaam],
+    ['kantoorstad', 'kantoorstad', kantoorstad],
+    ['kantoorland', 'kantoorland', kantoorland],
+    ['gemachtigde', 'gemachtigde persoon', gemachtigde]
+  ].filter(f => !f[2]);
+  if (verplicht.length) {
+    verplicht.forEach(f => markInvalid(document.getElementById(f[0])));
+    errorBox.textContent = 'Vul alle verplichte velden in. Nog leeg: ' + verplicht.map(f => f[1]).join(', ') + '.';
+    errorBox.style.display = 'block';
+    document.getElementById(verplicht[0][0]).focus();
+    return;
+  }
+
+  const heeftSchuldbekentenis = document.getElementById('heeft_schuldbekentenis').checked;
+  if (heeftSchuldbekentenis && (!document.getElementById('datum_schuldbekentenis').value || !document.getElementById('datum_ingang_termijnen').value)) {
+    ['datum_schuldbekentenis', 'datum_ingang_termijnen'].forEach(id => { const el = document.getElementById(id); if (!el.value) markInvalid(el); });
+    errorBox.textContent = 'Vul bij de schuldbekentenis zowel de datum van ondertekening als de ingangsdatum van de termijnen in.';
+    errorBox.style.display = 'block';
+    return;
+  }
+
+  const contractDivs = document.querySelectorAll('.contract');
+  const bullet2 = []; // alle overeenkomsten
+  const bullet3 = []; // alleen in-store
+
+  let halfIngevuld = null;
+  contractDivs.forEach((div, i) => {
+    const datumInput = div.querySelector('.c_datum').value;
+    const invoice = clean(div.querySelector('.c_invoice').value);
+    const merchant = clean(div.querySelector('.c_merchant').value);
+    const inStore = div.querySelector('.c_instore').checked;
+    const gevuld = [datumInput, invoice, merchant].filter(Boolean).length;
+    if (gevuld > 0 && gevuld < 3) {
+      // A half-filled agreement would silently drop out of the petition, so stop and say which one.
+      if (!datumInput) markInvalid(div.querySelector('.c_datum'));
+      if (!invoice) markInvalid(div.querySelector('.c_invoice'));
+      if (!merchant) markInvalid(div.querySelector('.c_merchant'));
+      if (!halfIngevuld) halfIngevuld = { nr: i + 1, el: div };
+    }
+    if (!datumInput || !invoice || !merchant) return;
+    const datum = fmtDatum(datumInput);
+    bullet2.push({ datum, invoice, merchant });
+    if (inStore) bullet3.push({ datum, invoice, merchant });
+  });
+
+  if (halfIngevuld) {
+    errorBox.textContent = 'Overeenkomst ' + halfIngevuld.nr + ' is niet compleet: vul de datum, het invoice ID en de merchant in, of verwijder deze overeenkomst.';
+    errorBox.style.display = 'block';
+    halfIngevuld.el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
+
+  if (bullet2.length === 0) {
+    errorBox.textContent = 'Vul bij minstens één overeenkomst de datum, het invoice ID en de merchant in.';
+    errorBox.style.display = 'block';
+    return;
+  }
+
+  const hoofdsom = fmtBedrag(hoofdsomRaw);
+  const incassokosten = fmtBedrag(hoofdsomRaw * (INCASSO_PERCENTAGE / 100));
+  const datumExploot = fmtDatum(document.getElementById('datum_sommatie_exploot').value);
+  const sommatiebriefRaw = document.getElementById('datum_sommatiebrief').value;
+  const ondertekLand = clean(document.getElementById('ondertekening_land').value) || '[plaats]';
+  const ondertekDatum = fmtDatum(document.getElementById('ondertekening_datum').value);
+
+  const sommatieBody = sommatiebriefRaw
+    ? `Op **${datumExploot}** is gedaagde gesommeerd in de vorm van een sommatie-exploot voor een hoofdsom van **Afl. ${hoofdsom}**. Voorts is gedaagde op **${fmtDatum(sommatiebriefRaw)}** gesommeerd in de vorm van een sommatiebrief voor het op dat moment openstaande bedrag${heeftSchuldbekentenis ? '' : '. Gedaagde heeft hierop echter wederom niet gereageerd'};`
+    : `Op **${datumExploot}** is gedaagde gesommeerd in de vorm van een sommatie-exploot voor een hoofdsom van **Afl. ${hoofdsom}**${heeftSchuldbekentenis ? '' : '. Gedaagde heeft hierop echter niet gereageerd'};`;
+
+  const eiseresKey = document.getElementById('eiseresPreset').value;
+  const introMd = EISERES_PRESETS[eiseresKey]({ kantooradres, kantoorstad, kantoorland, kantoornaam, gemachtigde });
+
+  const paras = [];
+  paras.push({ text: 'RECHTERLIJK BEVEL TOT BETALING' });
+  paras.push({ lines: ['De Edelachtbare Heer/Vrouwe', 'Rechter in het Gerecht in', 'Eerste Aanleg van Aruba'] });
+  paras.push({ md: '**Geeft eerbiedig te kennen:**' });
+  paras.push({ md: introMd, justify: true });
+
+  let n = 1;
+  paras.push({
+    md: `${n++}. Eiseres verzoekt Uw Gerecht gedaagde, **${naam_debiteur}**, geboren op **${geboortedatum_debiteur}**, wonende te **${land_debiteur}** aan **${adres_debiteur}**, zoals blijkt uit de verklaring van de Dienst Burgerlijke Stand en Bevolkingsregister (prod. 2), te bevelen tot betaling van **Afl. ${hoofdsom}**, vermeerderd met de buitengerechtelijke incassokosten ad **Afl. ${incassokosten}** en de wettelijke rente vanaf de dag der opeisbaarheid tot de dag der algehele voldoening, met veroordeling van gedaagde in de kosten van deze procedure, althans een zodanige beslissing te nemen als Uw Gerecht in goede justitie geraden voorkomt;`,
+    justify: true
+  });
+
+  paras.push({ md: `${n++}. Tussen gedaagde en de hieronder genoemde merchant(s) zijn de volgende huurkoopovereenkomsten tot stand gekomen:`, justify: true });
+  bullet2.forEach(c => paras.push({ md: `Op **${c.datum}** heeft gedaagde bij **${c.merchant}** (invoice ID: **${c.invoice}**) goederen aangekocht;`, bullet: true }));
+
+  if (bullet3.length > 0) {
+    paras.push({ md: `${n++}. Verzoekster heeft op de volgende datum(s) de vordering van de betreffende merchant op gedaagde overgenomen:`, justify: true });
+    bullet3.forEach(c => paras.push({ md: `Op **${c.datum}** de vordering van **${c.merchant}** (invoice ID: **${c.invoice}**);`, bullet: true }));
+    paras.push({ md: '(prod. 3);', indent: true });
+  }
+
+  paras.push({
+    md: `${n++}. Gedaagde heeft zich niet, althans niet volledig/strikt, gehouden aan de uit de overeenkomsten voor hem/haar voortvloeiende verplichtingen, met een openstaande schuld als gevolg. Uit het als bijlage gevoegde “Customer Statement” volgt dat gedaagde tot op heden een bedrag groot **Afl. ${hoofdsom}** verschuldigd is aan eiseres (prod. 4). Verzoekster heeft gedaagde meerdere malen benaderd over de openstaande schuld. Desondanks bleef betaling tot op heden achterwege;`,
+    justify: true
+  });
+
+  paras.push({
+    md: `${n++}. Daar gedaagde zijn/haar verplichtingen niet is nagekomen, heeft eiseres, ter beperking van de door haar opgelopen schade (boeterente en winstderving), een incassobureau in de arm genomen. Eiseres dient dientengevolge ${INCASSO_PERCENTAGE}% buitengerechtelijke incassokosten te betalen, berekend over het totaal verschuldigde bedrag, zijnde **Afl. ${incassokosten}**;`,
+    justify: true
+  });
+
+  paras.push({ md: `${n++}. ${sommatieBody}`, justify: true });
+
+  if (heeftSchuldbekentenis) {
+    const datumSchuldbekentenis = fmtDatum(document.getElementById('datum_schuldbekentenis').value);
+    const datumIngangTermijnen = fmtDatum(document.getElementById('datum_ingang_termijnen').value);
+    const bedragBetaaldRaw = parseFloat(document.getElementById('bedrag_betaald').value) || 0;
+    const bedragBetaald = fmtBedrag(bedragBetaaldRaw);
+
+    paras.push({
+      md: `${n++}. Gedaagde heeft op **${datumSchuldbekentenis}** een schuldbekentenis met afbetalingsregeling getroffen op het kantoor van de gemachtigde van eiseres en hierbij afgesproken dat het totaal-verschuldigde ingaande **${datumIngangTermijnen}** betaald zal worden in maandelijkse termijnen (prod. VII);`,
+      justify: true
+    });
+
+    if (bedragBetaaldRaw > 0) {
+      paras.push({
+        md: `${n++}. Gedaagde heeft hierop na ingebrekestelling en na het uit handen geven van de vordering tot op heden een bedrag van **Afl. ${bedragBetaald}** in mindering voldaan, doch is met betaling van het restant verschuldigde tot op heden ingebreke gebleven. Bijgevoegd is een overzicht van de tot op heden gedane betalingen (prod. VIII);`,
+        justify: true
+      });
+    } else {
+      paras.push({
+        md: `${n++}. Gedaagde is echter, ondanks ingebrekestelling en het uit handen geven van de vordering, tot op heden in gebreke gebleven met de betaling van het verschuldigde bedrag;`,
+        justify: true
+      });
+    }
+  }
+
+  paras.push({ md: `${n++}. Eiseres ziet zich genoodzaakt, nu gedaagde halsstarrig weigert tot betaling over te gaan, dit langs gerechtelijke weg in te vorderen;`, justify: true });
+  paras.push({ md: `${n++}. Eiseres biedt uitdrukkelijk bewijs aan van haar stellingen door alle middelen rechtens, voor zover op haar enige bewijslast mocht rusten;`, justify: true });
+  paras.push({ md: `${n++}. Verzoekster verschijnt vrijwillig, zodat haar oproeping achterwege kan blijven.`, justify: true });
+
+  paras.push({ md: '**MITSDIEN HET U E.A. MOGE BEHAGEN bij vonnis, uitvoerbaar bij voorraad:**', spacingBefore: true });
+  paras.push({
+    md: `I. gedaagde te veroordelen om tegen behoorlijke kwijting aan verzoekster te betalen de somma van **Afl. ${hoofdsom}**, te vermeerderen met de buitengerechtelijke incassokosten ad ${INCASSO_PERCENTAGE}%, zijnde **Afl. ${incassokosten}**, alsmede de wettelijke rente over voormeld bedrag vanaf de dag der opeisbaarheid tot aan de dag der algehele voldoening, althans een zodanige beslissing te nemen als U E.A. in goede justitie geraden voorkomt;`,
+    justify: true
+  });
+  paras.push({ md: 'II. gedaagde te veroordelen in de kosten van dit geding, waaronder begrepen de explootkosten, de kosten van betekening der sommatie en de griffierechten.', justify: true });
+
+  paras.push({ md: `${ondertekLand}, ${ondertekDatum}`, spacingBefore: true });
+  paras.push({ md: 'Namens Eiseres,', align: 'right' });
+  paras.push({ md: '', align: 'right' });
+  paras.push({ md: '', align: 'right' });
+  paras.push({ md: gemachtigde, align: 'right' });
+
+  document.getElementById('docPreview').innerHTML = parasToPreviewHtml(paras);
+  document.getElementById('output').style.display = 'block';
+  document.getElementById('output').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  document.getElementById('output').scrollIntoView({ behavior: 'smooth' });
+  window.__docParas = paras;
+  window.__lastNaam = naam_debiteur;
+}
+
+async function downloadDocx() {
+  if (!window.__docParas) return;
+  try {
+    const zip = new JSZip();
+    zip.file('[Content_Types].xml', CONTENT_TYPES_XML);
+    zip.folder('_rels').file('.rels', RELS_XML);
+    zip.folder('word').file('document.xml', buildDocumentXml(window.__docParas));
+    const blob = await zip.generateAsync({
+      type: 'blob',
+      mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Bevel-tot-betaling-${window.__lastNaam.replace(/\s+/g, '-')}.docx`;
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    console.error(e);
+    alert('Het Word-bestand kon niet worden gemaakt (mogelijk geen internetverbinding). Het bestand wordt nu als HTML gedownload — dit kun je in Word openen en opslaan als .docx.');
+    downloadHtml();
+  }
+}
+
+function downloadPdf() {
+  if (!window.__docParas) return;
+  const body = parasToPreviewHtml(window.__docParas);
+  const printHtml = `<!DOCTYPE html><html lang="nl"><head><meta charset="UTF-8"><title>Bevel tot Betaling - ${escHtml(window.__lastNaam)}</title>
+  <style>
+    @page { size: A4; margin: 2.5cm; }
+    body{font-family:"Times New Roman",Times,serif;font-size:12pt;line-height:1.55;margin:0;}
+    h1{text-align:center;font-size:13pt;letter-spacing:1px;}
+    p{margin:0 0 0.8em 0;}
+    ul.doc-bullets{list-style:none;margin:0.4em 0 0.9em 0;padding:0;}
+    ul.doc-bullets>li{position:relative;padding-left:20px;margin-bottom:6px;text-align:justify;}
+    ul.doc-bullets>li::before{content:"•";position:absolute;left:4px;font-weight:bold;}
+  </style></head><body>${body}</body></html>`;
+
+  const printWindow = window.open('', '_blank');
+  if (!printWindow) {
+    alert('Kon geen nieuw venster openen om te printen (mogelijk geblokkeerd door de browser). Sta pop-ups toe voor deze pagina en probeer opnieuw.');
+    return;
+  }
+  printWindow.document.open();
+  printWindow.document.write(printHtml);
+  printWindow.document.close();
+  printWindow.onload = () => {
+    printWindow.focus();
+    printWindow.print();
+  };
+}
+
+function downloadHtml() {
+  if (!window.__docParas) return;
+  const body = parasToPreviewHtml(window.__docParas);
+  const full = `<!DOCTYPE html><html lang="nl"><head><meta charset="UTF-8"><title>Bevel tot Betaling - ${escHtml(window.__lastNaam)}</title>
+  <style>
+    body{font-family:"Times New Roman",Times,serif;font-size:12pt;line-height:1.55;max-width:21cm;margin:2cm auto;}
+    h1{text-align:center;font-size:13pt;letter-spacing:1px;}
+    p{margin:0 0 0.8em 0;}
+    ul.doc-bullets{list-style:none;margin:0.4em 0 0.9em 0;padding:0;}
+    ul.doc-bullets>li{position:relative;padding-left:20px;margin-bottom:6px;text-align:justify;}
+    ul.doc-bullets>li::before{content:"•";position:absolute;left:4px;font-weight:bold;}
+  </style></head><body>${body}</body></html>`;
+  const blob = new Blob([full], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Bevel-tot-betaling-${window.__lastNaam.replace(/\s+/g, '-')}.html`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+</script>
+<!-- Help chat (the worker address is set inside help-chat.js) -->
+<script src="help-chat.js"></script>
+</body>
+</html>
