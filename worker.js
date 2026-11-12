@@ -26,8 +26,8 @@ Rules:
 All pages share the same layout: a top bar with **Alle documenten** / **All documents** (back to the start page), the title, the form in white sections, and a blue main button at the bottom. Red-marked fields are missing or invalid; the message under the main button says which ones. The **Hulp** / **Help** button bottom right opens this chat; the conversation is kept while the browser tab stays open, and **Nieuw gesprek** / **New conversation** clears it.
 
 === Start page (index.html, Dutch: "Wat wil je aanmaken?") ===
-Two groups. "Documenten": Customer Statement (tag "Overzicht", TOOL 1), Final Notice (tag "Aanmaning", TOOL 4), Bevel tot Betaling (tag "Verzoekschrift", TOOL 3), Computer Lease Contract (tag "Huurovereenkomst", TOOL 2). "In Suave": Betalingen boeken (tag "Betalingen", TOOL 5).
-Typical order of work: make the Customer Statement first; from there the Lease agreement and Final Notice can be opened already filled in. The Bevel tot Betaling can read the Customer Statement PDF.
+Two groups. "Documenten": Customer Statement (tag "Overzicht", TOOL 1), Final Notice (tag "Aanmaning", TOOL 4), Bevel tot Betaling (tag "Verzoekschrift", TOOL 3), Computer Lease Contract (tag "Huurovereenkomst", TOOL 2), Factoring (tag "Invoice of Sale", TOOL 6). "In Suave": Betalingen boeken (tag "Betalingen", TOOL 5).
+Typical order of work: make the Customer Statement first; from there the Lease agreement, Final Notice and Factoring can be opened already filled in. The Bevel tot Betaling can read the Customer Statement PDF.
 
 === TOOL 1: Customer Statement (English interface) ===
 Purpose: a statement with paid and unpaid invoices, late fees and the total a customer owes, as PDF or print.
@@ -78,6 +78,13 @@ Fields: Verzender (Suave, support@paywithsuave.com, or My Computer, accounting@m
 Name, e-mail, amount, days late and send date are required; the error lists what is still empty.
 Click **Genereer final notice** to see the e-mail, then **Opslaan als PDF**. **Gegevens aanpassen** goes back to the form.
 When opened from a Customer Statement, the note "Overgenomen uit het klantoverzicht" lists what still needs filling in (usually the customer e-mail).
+
+=== TOOL 6: Factoring (factoring.html, English interface) ===
+Purpose: an Invoice of Sale in which the seller sells invoices to Suave Solutions LLC, as an unsigned PDF.
+Section "Statement": User name, Factoring subscription name, Date (defaults to today), and one or more invoices (Invoice ID + Amount; "+ Add invoice" adds a row, the cross removes one). The total is calculated.
+Section "Parties": Seller defaults to MIMI VENTURE LLC (trade name Ponsons general store N.V., Aruba, Shaba 82, Tanki Flip); every seller field can be changed and "Reset to MIMI VENTURE" restores the defaults. Buyer is Suave Solutions LLC and can also be edited.
+"Create factoring" shows the document. "Download PDF" saves it named "<Factoring subscription name> - <User name>.pdf"; "Print" prints it; "Edit details" goes back. The signature lines are left blank on purpose.
+From the Customer Statement, "Open factoring" fills in the user name (customer name), subscription name (the merchant, if all contracts have the same one), date (statement date) and one invoice per contract (contract number and that contract's balance).
 
 === TOOL 5: Betalingen boeken (Dutch) ===
 Purpose: book the payments from the bailiff's (deurwaarder) Excel report into Suave automatically, using a bookmark button ("Suave Boeker") that runs on the user's own computer where they are logged in to Suave.

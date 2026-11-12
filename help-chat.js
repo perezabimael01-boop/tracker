@@ -54,7 +54,10 @@ const HELP_CHAT_ENDPOINT = "https://abimael-help.perezabimael01.workers.dev";
       : ["How do I add several items?", "Why is the billing day at most 28?"],
     "betalingen-boeken.html": isNL
       ? ["Slepen naar de bladwijzerbalk lukt niet", "Wat doet Testrun?", "Een betaling is 'Niet gevonden'"]
-      : ["Dragging to the bookmarks bar doesn't work", "What does Test run do?"]
+      : ["Dragging to the bookmarks bar doesn't work", "What does Test run do?"],
+    "factoring.html": isNL
+      ? ["Hoe maak ik een factoring vanuit een statement?", "Hoe verander ik de verkoper?"]
+      : ["How do I make a factoring from a statement?", "How do I change the seller?"]
   };
 
   const css = `

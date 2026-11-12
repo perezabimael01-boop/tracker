@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Factoring – My Computer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="site.css">
+<style>
+  .field{ margin:0 0 16px; }
+  .inv-head, .inv{ display:grid; grid-template-columns:1fr 150px 44px; gap:10px; }
+  .inv-head{ font-size:13.5px; font-weight:600; margin:0 0 6px; }
+  .inv{ margin:0 0 8px; }
+  .inv .x{ min-height:42px; padding:0; }
+  .total{ font-weight:600; margin-top:10px; font-variant-numeric:tabular-nums; }
+  details summary{ cursor:pointer; font-weight:600; margin:0 0 14px; }
+  details[open] summary{ margin-bottom:16px; }
+  .filename{ font-family:ui-monospace,Menlo,monospace; font-size:13.5px; background:var(--surface-2); border:1px solid var(--line); border-radius:var(--radius-sm); padding:9px 12px; word-break:break-all; }
+  .error{ display:none; background:var(--danger-soft); color:var(--danger); border:1px solid #F0C2BC; border-left:4px solid var(--danger); border-radius:var(--radius-sm); padding:11px 14px; font-size:14px; margin-top:14px; }
+  .prefill-note{ display:none; margin:0 0 18px; }
+  .prefill-note.show{ display:block; }
+  .field.needs-input input{ border-color:var(--tool); box-shadow:0 0 0 3px color-mix(in srgb, var(--tool) 18%, transparent); }
+
+  #preview{ display:none; }
+  .preview-wrap{ background:#DDE3E8; border-radius:var(--radius); padding:20px; overflow:auto; margin-top:16px; }
+  #doc{ background:#fff; width:794px; max-width:100%; margin:0 auto; padding:48px 56px; color:#000; font:13px/1.45 "Times New Roman",Times,serif; box-shadow:0 1px 4px rgba(0,0,0,.12); }
+  #doc h3{ text-align:center; font-size:14px; margin:0 0 16px; }
+  #doc p{ margin:0 0 10px; }
+  #doc ol{ list-style:upper-alpha; padding-left:26px; margin:0 0 12px; }
+  #doc li{ margin-bottom:10px; }
+  #doc li p{ margin:6px 0; }
+  #doc table.inv-table{ border-collapse:collapse; margin:4px 0; }
+  #doc table.inv-table td{ padding:1px 14px 1px 0; }
+  #doc .sig{ margin-top:22px; page-break-inside:avoid; break-inside:avoid; }
+  #doc .sig .space{ height:56px; }
+  #doc .sig .line{ width:200px; border-top:1px solid #000; margin-bottom:2px; }
+
+  @media (max-width:640px){
+    .inv-head, .inv{ grid-template-columns:1fr 110px 40px; }
+    #doc{ padding:28px 22px; }
+  }
+  @media print{
+    #setup, .no-print{ display:none !important; }
+    #preview{ display:block !important; }
+    .preview-wrap{ background:none; padding:0; margin:0; }
+    #doc{ box-shadow:none; width:auto; padding:0; }
+    @page{ size:A4; margin:18mm 16mm; }
+  }
+</style>
+</head>
+<body data-tool="factoring">
+<header class="app-bar">
+  <div class="app-bar-inner">
+    <a class="app-back" href="index.html"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M13 8H3M3 8L7 4M3 8L7 12" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>All documents</a>
+    <span class="app-brand"><span class="app-mark" aria-hidden="true"></span>My Computer &amp; Suave</span>
+  </div>
+</header>
+
+<main class="page">
+  <div class="page-head">
+    <h1>Factoring</h1>
+    <p>Invoice of Sale: the seller sells its invoices to Suave Solutions LLC. Fill in the statement, click <b>Create factoring</b>, and download the unsigned PDF.</p>
+  </div>
+
+  <div id="setup">
+    <div class="note prefill-note" id="prefillNote" role="status"></div>
+
+    <div class="section">
+      <h2>Statement</h2>
+      <div class="row">
+        <div class="field">
+          <label for="userName">User name</label>
+          <input type="text" id="userName" placeholder="e.g. Rosalia Solognier">
+        </div>
+        <div class="field">
+          <label for="subName">Factoring subscription name</label>
+          <input type="text" id="subName" placeholder="e.g. My Computer">
+        </div>
+      </div>
+      <div class="field">
+        <label for="docDate">Date</label>
+        <input type="date" id="docDate">
+        <div class="hint">Defaults to today. This is the date printed on the Invoice of Sale.</div>
+      </div>
+
+      <div class="inv-head"><span>Invoice ID</span><span>Amount</span><span></span></div>
+      <div id="invoices"></div>
+      <button type="button" class="btn btn-quiet" id="addInv">+ Add invoice</button>
+      <div class="total">Total: <span id="totalOut">0.00</span></div>
+    </div>
+
+    <div class="section">
+      <h2>Parties</h2>
+      <details open>
+        <summary>Seller <span class="opt">default: MIMI VENTURE LLC</span></summary>
+        <div class="row">
+          <div class="field"><label for="sName">Company name</label><input type="text" id="sName"></div>
+          <div class="field"><label for="sTrade">Trade name <span class="opt">under the signature</span></label><input type="text" id="sTrade"></div>
+        </div>
+        <div class="row">
+          <div class="field"><label for="sLaws">Incorporated under the laws of</label><input type="text" id="sLaws"></div>
+          <div class="field"><label for="sAddr">Registered office</label><input type="text" id="sAddr"></div>
+        </div>
+        <button type="button" class="btn btn-secondary" id="resetSeller">Reset to MIMI VENTURE</button>
+      </details>
+      <details style="margin-top:18px">
+        <summary>Buyer <span class="opt">Suave Solutions LLC</span></summary>
+        <div class="field"><label for="bName">Company name</label><input type="text" id="bName"></div>
+        <div class="row">
+          <div class="field"><label for="bLaws">Incorporated under the laws of</label><input type="text" id="bLaws"></div>
+          <div class="field"><label for="bAddr">Registered office</label><input type="text" id="bAddr"></div>
+        </div>
+      </details>
+    </div>
+
+    <div class="actions">
+      <button type="button" class="btn btn-primary" id="createBtn">Create factoring</button>
+    </div>
+    <div class="error" id="err" role="alert"></div>
+  </div>
+
+  <div id="preview">
+    <div class="section no-print">
+      <h2>Download</h2>
+      <label>File name</label>
+      <div class="filename" id="fileNameOut">—</div>
+      <div class="actions">
+        <button type="button" class="btn btn-primary" id="pdfBtn">Download PDF</button>
+        <button type="button" class="btn btn-secondary" id="printBtn">Print</button>
+        <button type="button" class="btn btn-quiet" id="editBtn">Edit details</button>
+      </div>
+      <div class="hint">The signature areas are left blank for the seller and buyer to sign.</div>
+    </div>
+    <div class="preview-wrap"><div id="docHost"></div></div>
+  </div>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script>
+const SELLER_DEFAULTS = { sName:"MIMI VENTURE LLC", sTrade:"Ponsons general store N.V.", sLaws:"Aruba", sAddr:"Shaba 82, Tanki Flip, Aruba" };
+const BUYER_DEFAULTS  = { bName:"Suave Solutions LLC", bLaws:"State of Delaware, USA", bAddr:"9100 S Dadland BLVD STE 912, Miami, Florida, 33156" };
+const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const $ = id => document.getElementById(id);
+
+const setVals = obj => { for(const k in obj) $(k).value = obj[k]; };
+setVals(SELLER_DEFAULTS); setVals(BUYER_DEFAULTS);
+$("resetSeller").onclick = () => setVals(SELLER_DEFAULTS);
+
+function isoToday(){ const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+$("docDate").value = isoToday();
+
+const money = n => (isNaN(n)?0:n).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function fmtDate(v){ if(!v) return ""; const [y,m,d]=v.split("-").map(Number); return String(d).padStart(2,"0")+" "+MONTHS[m-1]+", "+y; }
+
+// ---- Invoice rows ----
+function addInvoice(id="", amount=""){
+  const row = document.createElement("div");
+  row.className = "inv";
+  row.innerHTML = `<input type="text" class="invId" placeholder="e.g. MC102035" aria-label="Invoice ID">
+    <input type="number" class="invAmt" step="0.01" min="0" placeholder="0.00" aria-label="Amount">
+    <button type="button" class="btn btn-secondary x" title="Remove invoice" aria-label="Remove invoice">✕</button>`;
+  row.querySelector(".invId").value = id;
+  row.querySelector(".invAmt").value = amount;
+  row.querySelector(".x").onclick = () => {
+    if(document.querySelectorAll(".inv").length > 1) row.remove();
+    else row.querySelectorAll("input").forEach(i=>i.value="");
+    updateTotal();
+  };
+  $("invoices").appendChild(row);
+}
+function getInvoices(){
+  return [...document.querySelectorAll(".inv")].map(r=>({
+    el:r, id:r.querySelector(".invId").value.trim(), amount:parseFloat(r.querySelector(".invAmt").value)
+  })).filter(i => i.id || !isNaN(i.amount));
+}
+function updateTotal(){ $("totalOut").textContent = money(getInvoices().reduce((s,i)=>s+(i.amount||0),0)); }
+$("addInv").onclick = () => { addInvoice(); updateTotal(); };
+document.addEventListener("input", e => {
+  if(e.target.closest(".inv")) updateTotal();
+  e.target.removeAttribute("aria-invalid");
+});
+
+// ---- File name: "<subscription> - <user>.pdf" ----
+function fileName(){
+  const clean = s => s.trim().replace(/[\\/:*?"<>|#%]+/g,"").replace(/\s+/g," ");
+  const parts = [clean($("subName").value), clean($("userName").value)].filter(Boolean);
+  return (parts.length ? parts.join(" - ") : "Factoring") + ".pdf";
+}
+
+// ---- Validate + build ----
+function showError(msg, el){
+  $("err").textContent = msg; $("err").style.display = "block";
+  if(el){ el.setAttribute("aria-invalid","true"); el.focus(); }
+}
+function validate(){
+  $("err").style.display = "none";
+  if(!$("userName").value.trim()) return showError("Enter the user name.", $("userName")), false;
+  if(!$("subName").value.trim()) return showError("Enter the factoring subscription name.", $("subName")), false;
+  if(!$("docDate").value) return showError("Pick a date.", $("docDate")), false;
+  const inv = getInvoices();
+  if(!inv.length) return showError("Add at least one invoice.", document.querySelector(".invId")), false;
+  for(const i of inv){
+    if(!i.id) return showError("Every invoice needs an invoice ID.", i.el.querySelector(".invId")), false;
+    if(isNaN(i.amount) || i.amount <= 0) return showError("Invoice " + i.id + " needs an amount above 0.", i.el.querySelector(".invAmt")), false;
+  }
+  for(const id of ["sName","sLaws","sAddr","bName","bLaws","bAddr"]){
+    if(!$(id).value.trim()){ $(id).closest("details").open = true; return showError("Fill in all seller and buyer details.", $(id)), false; }
+  }
+  return true;
+}
+
+function buildDoc(){
+  const v = k => esc($(k).value.trim());
+  const inv = getInvoices();
+  const total = inv.reduce((s,i)=>s+i.amount,0);
+  const many = inv.length > 1;
+  const rows = inv.map(i=>`<tr><td><b>Invoice ID :</b> ${esc(i.id)}</td><td><b>Amount :</b> ${money(i.amount)}</td></tr>`).join("");
+  return `<div id="doc">
+    <h3>INVOICE OF SALE</h3>
+    <p><b>Date:</b> ${esc(fmtDate($("docDate").value))}</p>
+    <p>${v("sName")} ( The “Seller”), a limited liability company duly incorporated under the laws of ${v("sLaws")}, with its registered offices at ${v("sAddr")}. does hereby SELLS, ASSIGNS and TRANSFERS to</p>
+    <p>${v("bName")} (the “Buyer”), a limited liability company duly incorporated under the laws of ${v("bLaws")}, with its registered offices at ${v("bAddr")}.</p>
+    <ol>
+      <li>the following ${many ? "invoices" : "invoice"}:
+        <table class="inv-table">${rows}</table>
+        For a total amount of ${money(total)}
+        <p>Payment of the purchase price shall occur upon signing of this Invoice of Sale through a bank transfer as determined by Seller.</p>
+      </li>
+      <li>The Seller warrants that the ${many ? "invoices are" : "invoice is"} being transferred to the buyer and that as of this moment all payments by the client(s) of Seller are to be done directly to Buyer.</li>
+      <li>If any of the Parties does not comply with any of the obligations pursuant to this Agreement then the defaulting party is liable for reasonable damages as a result of the default, with costs and expenses<br>
+        If one of the Parties has been summoned in writing with a seven (7) day notice period by the other party, but remains in default, the non-defaulting party has the right to either:
+        <p>- demand compliance of this Invoice of Sale in which case the defaulting party must pay all lawyers and court costs of the non-defaulting party in case proceedings must be initiated,</p>
+        <p>or:</p>
+        <p>- cancel and dissolve this Invoice of Sale through a mere written declaration to the other party and without going to court with payment of all costs relating to this matter incurred by the non-defaulting party. In case of court intervention, the defaulting party must pay all lawyers and court costs of the non-defaulting party.</p>
+      </li>
+      <li>Buyer has the right to assign and transfer its rights and obligations arising out of this Invoice of Sale to a third party without having obtained previous written consent by Seller.</li>
+      <li>If any provision or term of this Invoice of Sale is held to be unenforceable, then this Invoice of Sale will be deemed amended to the extent necessary to render the otherwise unenforceable provision, and the rest of the Invoice of Sale, valid and enforceable. If a court declines to amend this Invoice of Sale as provided herein, the invalidity or unenforceability of any provision of this Invoice of Sale shall not affect the validity or enforceability of the remaining terms and provisions, which shall be enforced as if the offending term or provision had not been included in this Invoice of Sale.</li>
+      <li>This Invoice of Sale is the complete agreement between Parties and supersedes any prior written or oral agreements between Parties in relation to the subject matter of the Invoice of Sale. Changes and amendments to this Invoice of Sale shall have effect only if made in writing and signed by the Seller and the Buyer.</li>
+      <li>This Invoice of Sale shall be governed by the laws of Aruba. All disputes in connection with this matter shall be brought before the competent judge in Aruba.</li>
+    </ol>
+    <div class="sig">SELLER:<div class="space"></div><div class="line"></div>${v("sName")}${$("sTrade").value.trim() ? "<br>"+v("sTrade") : ""}</div>
+    <div class="sig">BUYER:<div class="space"></div><div class="line"></div>${v("bName")}</div>
+  </div>`;
+}
+
+$("createBtn").onclick = () => {
+  if(!validate()) return;
+  $("docHost").innerHTML = buildDoc();
+  $("fileNameOut").textContent = fileName();
+  document.title = fileName().replace(/\.pdf$/,"");   // also used as the name when saving via Print
+  $("setup").style.display = "none";
+  $("preview").style.display = "block";
+  window.scrollTo({top:0, behavior:"smooth"});
+};
+$("editBtn").onclick = () => {
+  $("preview").style.display = "none";
+  $("setup").style.display = "block";
+  document.title = "Factoring – My Computer";
+};
+$("printBtn").onclick = () => window.print();
+$("pdfBtn").onclick = async () => {
+  if(!window.html2pdf){ window.print(); return; }
+  const btn = $("pdfBtn"); btn.disabled = true; btn.textContent = "Making PDF…";
+  try{
+    const clone = $("doc").cloneNode(true);
+    clone.style.cssText = "box-shadow:none;width:794px;max-width:none;";
+    await html2pdf().set({
+      margin:0, filename:fileName(),
+      image:{type:"jpeg", quality:0.98},
+      html2canvas:{scale:2},
+      jsPDF:{unit:"pt", format:"a4", orientation:"portrait"},
+      pagebreak:{mode:["css","legacy"], avoid:".sig"}
+    }).from(clone).save();
+  } finally { btn.disabled = false; btn.textContent = "Download PDF"; }
+};
+
+// ---- Prefill from the Customer Statement (link ends in #prefill=...) ----
+(function prefillFromStatement(){
+  const m = location.hash.match(/prefill=([^&]+)/);
+  let p = null;
+  if(m){ try{ p = JSON.parse(decodeURIComponent(m[1])); }catch(err){ p = null; } }
+  if(!p){ addInvoice(); updateTotal(); return; }
+
+  const set = (id, val) => { if(val !== undefined && val !== null && val !== "") $(id).value = val; };
+  set("userName", p.name);
+  set("subName", p.subscription);
+  set("docDate", p.date);
+  (p.invoices && p.invoices.length ? p.invoices : [{}]).forEach(i => addInvoice(i.id || "", i.amount || ""));
+  updateTotal();
+
+  const todo = [];
+  [["userName","user name"],["subName","factoring subscription name"]].forEach(([id,label])=>{
+    if(!$(id).value.trim()){
+      todo.push(label);
+      $(id).closest(".field").classList.add("needs-input");
+      $(id).addEventListener("input", ()=>$(id).closest(".field").classList.remove("needs-input"), {once:true});
+    }
+  });
+  if(getInvoices().some(i=>!i.id)) todo.push("invoice ID");
+
+  const note = $("prefillNote");
+  note.innerHTML = "<b>Filled in from the Customer Statement.</b> Check the details" +
+    (todo.length ? " and fill in: " + todo.join(", ") + "." : ", then click <b>Create factoring</b>.");
+  note.classList.add("show");
+  const first = document.querySelector(".field.needs-input input") || (todo.includes("invoice ID") && [...document.querySelectorAll(".invId")].find(i=>!i.value));
+  if(first) first.focus();
+})();
+</script>
+<script src="help-chat.js"></script>
+</body>
+</html>

@@ -1,7 +1,7 @@
 /* ==========================================================================
    My Computer tools — shared styles
    Every page links this file:  <link rel="stylesheet" href="site.css">
-   Each page sets its colour with <body data-tool="claim|statement|notice|lease|payments">
+   Each page sets its colour with <body data-tool="claim|statement|notice|lease|payments|factoring">
    ========================================================================== */
 
 :root{
@@ -26,6 +26,7 @@
   --t-notice:#B0472E;    --t-notice-soft:#F8E9E4;
   --t-lease:#2E7D6B;     --t-lease-soft:#E3F1EC;
   --t-payments:#6B4A86;  --t-payments-soft:#EFE8F4;
+  --t-factoring:#1D6B78; --t-factoring-soft:#E2F0F2;
 
   --tool:var(--brand); --tool-soft:var(--brand-soft);
 
@@ -38,6 +39,7 @@ body[data-tool="statement"]{ --tool:var(--t-statement); --tool-soft:var(--t-stat
 body[data-tool="notice"]   { --tool:var(--t-notice);    --tool-soft:var(--t-notice-soft); }
 body[data-tool="lease"]    { --tool:var(--t-lease);     --tool-soft:var(--t-lease-soft); }
 body[data-tool="payments"] { --tool:var(--t-payments);  --tool-soft:var(--t-payments-soft); }
+body[data-tool="factoring"]{ --tool:var(--t-factoring); --tool-soft:var(--t-factoring-soft); }
 
 *,*::before,*::after{ box-sizing:border-box; }
 html{ -webkit-text-size-adjust:100%; }
