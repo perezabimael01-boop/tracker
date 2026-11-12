@@ -31,6 +31,10 @@
   .doc + .doc{ margin-top:20px; }
   .doc-label{ font:600 13.5px/1.4 "IBM Plex Sans",sans-serif; color:#333; margin:20px auto 8px; width:794px; max-width:100%; }
   .doc-label:first-child{ margin-top:0; }
+  .file-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:4px 0; }
+  .file-row + .file-row{ border-top:1px solid var(--line); }
+  .file-row .btn{ flex:none; min-height:34px; padding:4px 12px; font-family:"IBM Plex Sans",sans-serif; font-size:13.5px; }
+  .dl-hint{ font-size:13px; color:var(--muted, #5b6670); margin-top:8px; }
   .doc{ background:#fff; width:794px; max-width:100%; margin:0 auto; padding:48px 56px; color:#000; font:13px/1.45 "Times New Roman",Times,serif; box-shadow:0 1px 4px rgba(0,0,0,.12); }
   .doc h3{ text-align:center; font-size:14px; margin:0 0 16px; }
   .doc p{ margin:0 0 10px; }
@@ -124,10 +128,11 @@
   <div id="preview">
     <div class="section no-print">
       <h2>Download</h2>
-      <label>File names</label>
+      <label>Files</label>
       <div class="filename" id="fileNameOut">—</div>
+      <div class="dl-hint" id="dlHint" style="display:none">If only one PDF downloads, your browser is blocking multiple downloads: allow it for this site (icon in the address bar), or use the Download button next to each file.</div>
       <div class="actions">
-        <button type="button" class="btn btn-primary" id="pdfBtn">Download PDFs</button>
+        <button type="button" class="btn btn-primary" id="pdfBtn">Download all PDFs</button>
         <button type="button" class="btn btn-secondary" id="printBtn">Print</button>
         <button type="button" class="btn btn-quiet" id="editBtn">Edit details</button>
       </div>
@@ -277,7 +282,9 @@ $("createBtn").onclick = () => {
   $("docHost").innerHTML = inv.map(i =>
     (inv.length > 1 ? `<div class="doc-label no-print">${esc(fileName(i))}</div>` : "") + buildDoc(i)
   ).join("");
-  $("fileNameOut").innerHTML = inv.map(i=>esc(fileName(i))).join("<br>");
+  $("fileNameOut").innerHTML = inv.map((i,k)=>`<div class="file-row"><span>${esc(fileName(i))}</span><button type="button" class="btn btn-secondary dl-one" data-k="${k}">Download</button></div>`).join("");
+  $("dlHint").style.display = inv.length > 1 ? "block" : "none";
+  $("pdfBtn").textContent = inv.length > 1 ? "Download all PDFs" : "Download PDF";
   document.title = (inv.length === 1 ? fileName(inv[0]) : fileName()).replace(/\.pdf$/,"");   // also used as the name when saving via Print
   $("setup").style.display = "none";
   $("preview").style.display = "block";
@@ -289,26 +296,55 @@ $("editBtn").onclick = () => {
   document.title = "Factoring – My Computer";
 };
 $("printBtn").onclick = () => window.print();
+// Build one PDF (as a Blob) for document k
+function currentInvoices(){ return getInvoices().sort((a,b)=>a.date.localeCompare(b.date)); }
+async function makePdfBlob(k){
+  const clone = document.querySelectorAll("#docHost .doc")[k].cloneNode(true);
+  clone.style.cssText = "box-shadow:none;width:794px;max-width:none;margin:0;";
+  return html2pdf().set({
+    margin:0,
+    image:{type:"jpeg", quality:0.98},
+    html2canvas:{scale:2},
+    jsPDF:{unit:"pt", format:"a4", orientation:"portrait"},
+    pagebreak:{mode:["css","legacy"]}
+  }).from(clone).outputPdf("blob");
+}
+function saveBlob(blob, name){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = name; a.style.display = "none";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 60000);
+}
+const wait = ms => new Promise(r => setTimeout(r, ms));
+
+// Download all: build every PDF first, then save them one after another
 $("pdfBtn").onclick = async () => {
   if(!window.html2pdf){ window.print(); return; }
-  const btn = $("pdfBtn"); btn.disabled = true;
-  const inv = getInvoices().sort((a,b)=>a.date.localeCompare(b.date));
-  const docs = [...document.querySelectorAll("#docHost .doc")];
+  const btn = $("pdfBtn"), label = btn.textContent; btn.disabled = true;
+  const inv = currentInvoices();
   try{
-    for(let k = 0; k < docs.length; k++){
-      btn.textContent = "Making PDF " + (k+1) + " of " + docs.length + "…";
-      const clone = docs[k].cloneNode(true);
-      clone.style.cssText = "box-shadow:none;width:794px;max-width:none;margin:0;";
-      await html2pdf().set({
-        margin:0, filename:fileName(inv[k]),
-        image:{type:"jpeg", quality:0.98},
-        html2canvas:{scale:2},
-        jsPDF:{unit:"pt", format:"a4", orientation:"portrait"},
-        pagebreak:{mode:["css","legacy"]}
-      }).from(clone).save();
+    const blobs = [];
+    for(let k = 0; k < inv.length; k++){
+      btn.textContent = "Making PDF " + (k+1) + " of " + inv.length + "…";
+      blobs.push(await makePdfBlob(k));
     }
-  } finally { btn.disabled = false; btn.textContent = "Download PDFs"; }
+    for(let k = 0; k < blobs.length; k++){
+      saveBlob(blobs[k], fileName(inv[k]));
+      if(k < blobs.length - 1) await wait(700);
+    }
+  } finally { btn.disabled = false; btn.textContent = label; }
 };
+
+// Download a single PDF from its own button
+$("fileNameOut").addEventListener("click", async e => {
+  const b = e.target.closest(".dl-one"); if(!b) return;
+  if(!window.html2pdf){ window.print(); return; }
+  const k = Number(b.dataset.k), inv = currentInvoices();
+  b.disabled = true; b.textContent = "Making…";
+  try{ saveBlob(await makePdfBlob(k), fileName(inv[k])); }
+  finally{ b.disabled = false; b.textContent = "Download"; }
+});
 
 // ---- Prefill from the Customer Statement (link ends in #prefill=...) ----
 (function prefillFromStatement(){
