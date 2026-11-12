@@ -94,7 +94,7 @@
     <div class="section">
       <h2>Parties</h2>
       <details open>
-        <summary>Seller <span class="opt">default: MIMI VENTURE LLC</span></summary>
+        <summary>Seller <span class="opt">default: MIMI COMPUTER &amp; BUSINESS PRODUCTS N.V.</span></summary>
         <div class="row">
           <div class="field"><label for="sName">Company name</label><input type="text" id="sName"></div>
           <div class="field"><label for="sTrade">Trade name <span class="opt">under the signature</span></label><input type="text" id="sTrade"></div>
@@ -103,7 +103,11 @@
           <div class="field"><label for="sLaws">Incorporated under the laws of</label><input type="text" id="sLaws"></div>
           <div class="field"><label for="sAddr">Registered office</label><input type="text" id="sAddr"></div>
         </div>
-        <button type="button" class="btn btn-secondary" id="resetSeller">Reset to MIMI VENTURE</button>
+        <div class="row">
+          <div class="field"><label for="sTax">Federal Tax ID <span class="opt">optional</span></label><input type="text" id="sTax"></div>
+          <div class="field"><label for="sKvk">KVK number <span class="opt">optional</span></label><input type="text" id="sKvk"></div>
+        </div>
+        <button type="button" class="btn btn-secondary" id="resetSeller">Reset to MIMI COMPUTER</button>
       </details>
       <details style="margin-top:18px">
         <summary>Buyer <span class="opt">Suave Solutions LLC</span></summary>
@@ -139,7 +143,7 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script>
-const SELLER_DEFAULTS = { sName:"MIMI VENTURE LLC", sTrade:"Ponsons general store N.V.", sLaws:"Aruba", sAddr:"Shaba 82, Tanki Flip, Aruba" };
+const SELLER_DEFAULTS = { sName:"MIMI COMPUTER & BUSINESS PRODUCTS N.V.", sTrade:"", sLaws:"Aruba", sAddr:"Pedro Gallego Straat 4, Oranjestad, Aruba", sTax:"36-4919006", sKvk:"32159" };
 const BUYER_DEFAULTS  = { bName:"Suave Solutions LLC", bLaws:"State of Delaware, USA", bAddr:"9100 S Dadland BLVD STE 912, Miami, Florida, 33156" };
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 const $ = id => document.getElementById(id);
@@ -221,7 +225,7 @@ function buildDoc(){
   return `<div id="doc">
     <h3>INVOICE OF SALE</h3>
     <p><b>Date:</b> ${esc(fmtDate($("docDate").value))}</p>
-    <p>${v("sName")} ( The “Seller”), a limited liability company duly incorporated under the laws of ${v("sLaws")}, with its registered offices at ${v("sAddr")}. does hereby SELLS, ASSIGNS and TRANSFERS to</p>
+    <p>${v("sName")} ( The “Seller”), a limited liability company duly incorporated under the laws of ${v("sLaws")}, with its registered offices at ${v("sAddr")}${$("sKvk").value.trim() ? ", registered with the Chamber of Commerce (KVK) under number "+v("sKvk") : ""}${$("sTax").value.trim() ? ", Federal Tax ID "+v("sTax") : ""}, does hereby SELLS, ASSIGNS and TRANSFERS to</p>
     <p>${v("bName")} (the “Buyer”), a limited liability company duly incorporated under the laws of ${v("bLaws")}, with its registered offices at ${v("bAddr")}.</p>
     <ol>
       <li>the following ${many ? "invoices" : "invoice"}:
