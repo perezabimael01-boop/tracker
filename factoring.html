@@ -33,9 +33,6 @@
   #doc li p{ margin:6px 0; }
   #doc table.inv-table{ border-collapse:collapse; margin:4px 0; }
   #doc table.inv-table td{ padding:1px 14px 1px 0; }
-  #doc .sig{ margin-top:22px; page-break-inside:avoid; break-inside:avoid; }
-  #doc .sig .space{ height:56px; }
-  #doc .sig .line{ width:200px; border-top:1px solid #000; margin-bottom:2px; }
 
   @media (max-width:640px){
     .inv-head, .inv{ grid-template-columns:1fr 110px 40px; }
@@ -61,7 +58,7 @@
 <main class="page">
   <div class="page-head">
     <h1>Factoring</h1>
-    <p>Invoice of Sale: the seller sells its invoices to Suave Solutions LLC. Fill in the statement, click <b>Create factoring</b>, and download the unsigned PDF.</p>
+    <p>Invoice of Sale: the seller sells its invoices to Suave Solutions LLC. Fill in the statement, click <b>Create factoring</b>, and download the PDF.</p>
   </div>
 
   <div id="setup">
@@ -97,7 +94,6 @@
         <summary>Seller <span class="opt">default: MIMI COMPUTER &amp; BUSINESS PRODUCTS N.V.</span></summary>
         <div class="row">
           <div class="field"><label for="sName">Company name</label><input type="text" id="sName"></div>
-          <div class="field"><label for="sTrade">Trade name <span class="opt">under the signature</span></label><input type="text" id="sTrade"></div>
         </div>
         <div class="row">
           <div class="field"><label for="sLaws">Incorporated under the laws of</label><input type="text" id="sLaws"></div>
@@ -135,7 +131,6 @@
         <button type="button" class="btn btn-secondary" id="printBtn">Print</button>
         <button type="button" class="btn btn-quiet" id="editBtn">Edit details</button>
       </div>
-      <div class="hint">The signature areas are left blank for the seller and buyer to sign.</div>
     </div>
     <div class="preview-wrap"><div id="docHost"></div></div>
   </div>
@@ -143,7 +138,7 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script>
-const SELLER_DEFAULTS = { sName:"MIMI COMPUTER & BUSINESS PRODUCTS N.V.", sTrade:"", sLaws:"Aruba", sAddr:"Pedro Gallego Straat 4, Oranjestad, Aruba", sTax:"36-4919006", sKvk:"32159" };
+const SELLER_DEFAULTS = { sName:"MIMI COMPUTER & BUSINESS PRODUCTS N.V.", sLaws:"Aruba", sAddr:"Pedro Gallego Straat 4, Oranjestad, Aruba", sTax:"36-4919006", sKvk:"32159" };
 const BUYER_DEFAULTS  = { bName:"Suave Solutions LLC", bLaws:"State of Delaware, USA", bAddr:"9100 S Dadland BLVD STE 912, Miami, Florida, 33156" };
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 const $ = id => document.getElementById(id);
@@ -245,8 +240,6 @@ function buildDoc(){
       <li>This Invoice of Sale is the complete agreement between Parties and supersedes any prior written or oral agreements between Parties in relation to the subject matter of the Invoice of Sale. Changes and amendments to this Invoice of Sale shall have effect only if made in writing and signed by the Seller and the Buyer.</li>
       <li>This Invoice of Sale shall be governed by the laws of Aruba. All disputes in connection with this matter shall be brought before the competent judge in Aruba.</li>
     </ol>
-    <div class="sig">SELLER:<div class="space"></div><div class="line"></div>${v("sName")}${$("sTrade").value.trim() ? "<br>"+v("sTrade") : ""}</div>
-    <div class="sig">BUYER:<div class="space"></div><div class="line"></div>${v("bName")}</div>
   </div>`;
 }
 
@@ -276,7 +269,7 @@ $("pdfBtn").onclick = async () => {
       image:{type:"jpeg", quality:0.98},
       html2canvas:{scale:2},
       jsPDF:{unit:"pt", format:"a4", orientation:"portrait"},
-      pagebreak:{mode:["css","legacy"], avoid:".sig"}
+      pagebreak:{mode:["css","legacy"]}
     }).from(clone).save();
   } finally { btn.disabled = false; btn.textContent = "Download PDF"; }
 };
