@@ -10,10 +10,13 @@
 <link rel="stylesheet" href="site.css">
 <style>
   .field{ margin:0 0 16px; }
-  .inv-head, .inv{ display:grid; grid-template-columns:1fr 160px 130px 44px; gap:10px; }
+  .inv-head, .inv{ display:grid; grid-template-columns:1fr 160px 210px 44px; gap:10px; }
   .inv-head{ font-size:13.5px; font-weight:600; margin:0 0 6px; }
   .inv{ margin:0 0 8px; }
   .inv .x{ min-height:42px; padding:0; }
+  .amt-wrap{ display:flex; gap:6px; }
+  .amt-wrap select{ width:74px; flex:none; }
+  .amt-wrap input{ min-width:0; flex:1; }
   .total{ font-weight:600; margin-top:10px; font-variant-numeric:tabular-nums; }
   details summary{ cursor:pointer; font-weight:600; margin:0 0 14px; }
   details[open] summary{ margin-bottom:16px; }
@@ -151,16 +154,20 @@ const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">"
 function fmtDate(v){ if(!v) return ""; const [y,m,d]=v.split("-").map(Number); return String(d).padStart(2,"0")+" "+MONTHS[m-1]+", "+y; }
 
 // ---- Invoice rows ----
-function addInvoice(id="", amount="", date=""){
+const CURRENCIES = ["FL","ANG","$"];
+function normCur(c){ c = String(c||"").trim().toUpperCase(); if(c==="USD"||c==="US$") return "$"; return CURRENCIES.includes(c) ? c : "FL"; }
+function addInvoice(id="", amount="", date="", currency="FL"){
   const row = document.createElement("div");
   row.className = "inv";
   row.innerHTML = `<input type="text" class="invId" placeholder="e.g. MC102035" aria-label="Invoice ID">
     <input type="date" class="invDate" aria-label="Date">
-    <input type="number" class="invAmt" step="0.01" min="0" placeholder="0.00" aria-label="Amount">
+    <div class="amt-wrap"><select class="invCur" aria-label="Currency"><option value="FL">FL</option><option value="ANG">ANG</option><option value="$">$</option></select>
+    <input type="number" class="invAmt" step="0.01" min="0" placeholder="0.00" aria-label="Amount"></div>
     <button type="button" class="btn btn-secondary x" title="Remove invoice" aria-label="Remove invoice">✕</button>`;
   row.querySelector(".invId").value = id;
   row.querySelector(".invAmt").value = amount;
   row.querySelector(".invDate").value = date || isoToday();
+  row.querySelector(".invCur").value = normCur(currency);
   row.querySelector(".x").onclick = () => {
     if(document.querySelectorAll(".inv").length > 1) row.remove();
     else { row.querySelectorAll("input").forEach(i=>i.value=""); row.querySelector(".invDate").value = isoToday(); }
@@ -170,10 +177,16 @@ function addInvoice(id="", amount="", date=""){
 }
 function getInvoices(){
   return [...document.querySelectorAll(".inv")].map(r=>({
-    el:r, id:r.querySelector(".invId").value.trim(), date:r.querySelector(".invDate").value, amount:parseFloat(r.querySelector(".invAmt").value)
+    el:r, id:r.querySelector(".invId").value.trim(), date:r.querySelector(".invDate").value, cur:r.querySelector(".invCur").value, amount:parseFloat(r.querySelector(".invAmt").value)
   })).filter(i => i.id || !isNaN(i.amount));
 }
-function updateTotal(){ $("totalOut").textContent = money(getInvoices().reduce((s,i)=>s+(i.amount||0),0)); }
+const amt = (cur, n) => cur + " " + money(n);
+// Total per currency, e.g. "FL 427.74 + $ 100.00"
+function updateTotal(){
+  const sums = new Map();
+  getInvoices().forEach(i => sums.set(i.cur, (sums.get(i.cur)||0) + (i.amount||0)));
+  $("totalOut").textContent = sums.size ? [...sums].map(([c,n])=>amt(c,n)).join(" + ") : "0.00";
+}
 // New rows default to the day after the last row, so dates stay different
 $("addInv").onclick = () => {
   const dates = [...document.querySelectorAll(".invDate")].map(i=>i.value).filter(Boolean).sort();
@@ -183,8 +196,10 @@ $("addInv").onclick = () => {
     const dt = new Date(y, m-1, d+1);
     next = dt.getFullYear()+"-"+String(dt.getMonth()+1).padStart(2,"0")+"-"+String(dt.getDate()).padStart(2,"0");
   }
-  addInvoice("", "", next); updateTotal();
+  const curs = document.querySelectorAll(".invCur");
+  addInvoice("", "", next, curs.length ? curs[curs.length-1].value : "FL"); updateTotal();
 };
+document.addEventListener("change", e => { if(e.target.classList.contains("invCur")) updateTotal(); });
 document.addEventListener("input", e => {
   if(e.target.closest(".inv")) updateTotal();
   e.target.removeAttribute("aria-invalid");
@@ -229,7 +244,7 @@ function buildDoc(i){
   const v = k => esc($(k).value.trim());
   const total = i.amount;
   const many = false;
-  const rows = `<tr><td><b>Invoice ID :</b> ${esc(i.id)}</td><td><b>Amount :</b> ${money(i.amount)}</td></tr>`;
+  const rows = `<tr><td><b>Invoice ID :</b> ${esc(i.id)}</td><td><b>Amount :</b> ${esc(amt(i.cur, i.amount))}</td></tr>`;
   return `<div class="doc">
     <h3>INVOICE OF SALE</h3>
     <p><b>Date:</b> ${esc(fmtDate(i.date))}</p>
@@ -238,7 +253,7 @@ function buildDoc(i){
     <ol>
       <li>the following ${many ? "invoices" : "invoice"}:
         <table class="inv-table">${rows}</table>
-        For a total amount of ${money(total)}
+        For a total amount of ${esc(amt(i.cur, total))}
         <p>Payment of the purchase price shall occur upon signing of this Invoice of Sale through a bank transfer as determined by Seller.</p>
       </li>
       <li>The Seller warrants that the ${many ? "invoices are" : "invoice is"} being transferred to the buyer and that as of this moment all payments by the client(s) of Seller are to be done directly to Buyer.</li>
@@ -305,7 +320,7 @@ $("pdfBtn").onclick = async () => {
   const set = (id, val) => { if(val !== undefined && val !== null && val !== "") $(id).value = val; };
   set("userName", p.name);
   set("subName", p.subscription);
-  (p.invoices && p.invoices.length ? p.invoices : [{}]).forEach(i => addInvoice(i.id || "", i.amount || "", i.date || p.date || ""));
+  (p.invoices && p.invoices.length ? p.invoices : [{}]).forEach(i => addInvoice(i.id || "", i.amount || "", i.date || p.date || "", i.currency || p.currency || "FL"));
   updateTotal();
 
   const todo = [];
