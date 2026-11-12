@@ -827,34 +827,40 @@ function renderFollowup(data){
       <a class="btn-primary" href="${noticeLink}" target="_blank" rel="noopener">Open final notice</a>
     </div>`);
 
-  // One factoring (Invoice of Sale) with every contract as an invoice
-  const fInvoices = data.contractResults
-    .filter(cr => cr.subtotal > 0)
-    .map(cr => ({ id: cr.contract.rawContractNumber, amount: cr.subtotal.toFixed(2) }));
-  const merchants = [...new Set(data.contractResults.map(cr => cr.contract.merchantName).filter(m => m && m !== "\u2014"))];
-  const subscription = merchants.length === 1 ? merchants[0] : "";
-  const fMissing = [];
-  if(!name) fMissing.push("user name");
-  if(!subscription) fMissing.push("factoring subscription name");
-  if(fInvoices.some(i => !i.id)) fMissing.push("invoice ID");
-  const factoringLink = prefillLink("factoring.html", {
-    name,
-    subscription,
-    date: isoDate(data.statementDate),
-    invoices: fInvoices
+  // One factoring (Invoice of Sale) per account (factoring subscription / merchant),
+  // each with that account's contracts as invoices
+  const fGroups = new Map();
+  data.contractResults.filter(cr => cr.subtotal > 0).forEach(cr => {
+    const m = cr.contract.merchantName;
+    const key = (m && m !== "\u2014") ? m : "";
+    if(!fGroups.has(key)) fGroups.set(key, []);
+    fGroups.get(key).push(cr);
   });
-  if(fInvoices.length){
+  const multiFactoring = fGroups.size > 1;
+  fGroups.forEach((group, subscription) => {
+    const fInvoices = group.map(cr => ({ id: cr.contract.rawContractNumber, amount: cr.subtotal.toFixed(2) }));
+    const fMissing = [];
+    if(!name) fMissing.push("user name");
+    if(!subscription) fMissing.push("factoring subscription name");
+    if(fInvoices.some(i => !i.id)) fMissing.push("invoice ID");
+    const factoringLink = prefillLink("factoring.html", {
+      name,
+      subscription,
+      date: isoDate(data.statementDate),
+      invoices: fInvoices
+    });
     const fTotal = fInvoices.reduce((s, i) => s + parseFloat(i.amount), 0);
+    const fLabel = multiFactoring ? " \u2014 " + escHtml(subscription || "no account name") : "";
     rows.push(`
       <div class="fu-row">
         <div class="fu-text">
-          <b>Factoring (Invoice of Sale)</b>
+          <b>Factoring (Invoice of Sale)${fLabel}</b>
           ${fInvoices.length} invoice${fInvoices.length > 1 ? "s" : ""}, total ${fmtMoney(fTotal)}; seller MIMI VENTURE LLC, buyer Suave Solutions LLC
           <div class="fu-missing">${fMissing.length ? "Still to fill in: " + fMissing.join(", ") : "Everything is filled in, just check it"}</div>
         </div>
         <a class="btn-primary" href="${factoringLink}" target="_blank" rel="noopener">Open factoring</a>
       </div>`);
-  }
+  });
 
   document.getElementById('followupRows').innerHTML = rows.join("");
 }
