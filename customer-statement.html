@@ -838,7 +838,7 @@ function renderFollowup(data){
   });
   const multiFactoring = fGroups.size > 1;
   fGroups.forEach((group, subscription) => {
-    const fInvoices = group.map(cr => ({ id: cr.contract.rawContractNumber, amount: cr.subtotal.toFixed(2) }));
+    const fInvoices = group.map(cr => ({ id: cr.contract.rawContractNumber, amount: cr.subtotal.toFixed(2), date: cr.contract.purchaseDateStr }));
     const fMissing = [];
     if(!name) fMissing.push("user name");
     if(!subscription) fMissing.push("factoring subscription name");
@@ -855,7 +855,7 @@ function renderFollowup(data){
       <div class="fu-row">
         <div class="fu-text">
           <b>Factoring (Invoice of Sale)${fLabel}</b>
-          ${fInvoices.length} invoice${fInvoices.length > 1 ? "s" : ""}, total ${fmtMoney(fTotal)}; seller MIMI VENTURE LLC, buyer Suave Solutions LLC
+          ${fInvoices.length} invoice${fInvoices.length > 1 ? "s" : ""} (one factoring each), total ${fmtMoney(fTotal)}; seller MIMI VENTURE LLC, buyer Suave Solutions LLC
           <div class="fu-missing">${fMissing.length ? "Still to fill in: " + fMissing.join(", ") : "Everything is filled in, just check it"}</div>
         </div>
         <a class="btn-primary" href="${factoringLink}" target="_blank" rel="noopener">Open factoring</a>
